@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pydantic
+numpy
+networkx
+pytest
+openai
+
+
+
+
+
+

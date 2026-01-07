@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:\\Users\\SHASHA\\Documents",
+        "C:\\Users\\SHASHA\\Downloads"
+      ]
+    },
+    "vooster-ai": {
+      "command": "cmd.exe",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "--package=@vooster/mcp@latest",
+        "vooster-ai",
+        "--api-key=ak_jk3m5shddnmr12r5w5we1raz"
+      ]
+    }
+  }
+}

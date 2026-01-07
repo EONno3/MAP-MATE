@@ -1,0 +1,11 @@
+{
+  "name": "mapmate-monorepo",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
