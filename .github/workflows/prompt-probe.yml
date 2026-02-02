@@ -1,0 +1,55 @@
+name: Prompt Probe
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: packages/backend-ai/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r packages/backend-ai/requirements.txt
+
+      - name: Run prompt probe
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.PROMPT_PROBE_SLACK_WEBHOOK }}
+        run: |
+          set -euo pipefail
+          EXTRA_ARGS=()
+          if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
+            EXTRA_ARGS+=(--slack-webhook "$SLACK_WEBHOOK_URL")
+          fi
+
+          python packages/backend-ai/tmp_prompt_probe.py \
+            --dataset packages/backend-ai/datasets/prompt_cases.json \
+            --rooms 40 \
+            --samples 5 \
+            --json-output prompt-reports/latest.json \
+            --csv-output prompt-reports/latest.csv \
+            --summary-output prompt-reports/summary.txt \
+            --summary-max-prompts 5 \
+            "${EXTRA_ARGS[@]}"
+
+      - name: Upload prompt probe artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: prompt-probe-report
+          path: prompt-reports/
+
+

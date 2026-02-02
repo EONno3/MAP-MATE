@@ -1,0 +1,11 @@
+{
+  "name": "com.mapmate.unityimporter",
+  "version": "0.1.0",
+  "displayName": "Mapmate Unity Importer",
+  "description": "Mapmate의 mapmate.unity/v1 JSON을 Unity Tilemap으로 자동 생성하는 Importer(에디터 툴)입니다.",
+  "unity": "2021.3",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  }
+}
+

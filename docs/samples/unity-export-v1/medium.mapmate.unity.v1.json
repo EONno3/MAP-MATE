@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "mapmate.unity/v1",
+  "exportedAt": "2026-02-02T00:00:00Z",
+  "tilesPerChunkX": 10,
+  "tilesPerChunkY": 6,
+  "tilePalette": {
+    "byId": [
+      { "id": 0, "key": "empty" },
+      { "id": 1, "key": "solid" },
+      { "id": 2, "key": "platform" },
+      { "id": 3, "key": "spike" },
+      { "id": 4, "key": "acid" },
+      { "id": 5, "key": "door" }
+    ]
+  },
+  "objectPalette": {
+    "byKey": [
+      { "key": "spawn_point", "prefabKey": "SpawnPoint" },
+      { "key": "npc", "prefabKey": "Npc" },
+      { "key": "transition", "prefabKey": "DoorTrigger" }
+    ]
+  },
+  "rooms": [
+    {
+      "id": 10,
+      "zoneId": 1,
+      "roomGrid": { "x": 0, "y": 0, "w": 2, "h": 1 },
+      "worldTileOrigin": { "x": 0, "y": 0 },
+      "detail": {
+        "tileWidth": 20,
+        "tileHeight": 6,
+        "tilesEncoding": "rle1d",
+        "tiles": [
+          { "id": 1, "run": 120 }
+        ],
+        "objects": [
+          { "key": "spawn_point", "x": 2, "y": 1 }
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "zoneId": 2,
+      "roomGrid": { "x": 2, "y": 0, "w": 1, "h": 1 },
+      "worldTileOrigin": { "x": 20, "y": 0 },
+      "detail": {
+        "tileWidth": 10,
+        "tileHeight": 6,
+        "tilesEncoding": "raw2d",
+        "tiles": [
+          [1,1,1,1,1,1,1,1,1,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,0,0,0,2,2,0,0,0,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,1,1,1,1,1,1,1,1,1]
+        ],
+        "objects": [
+          { "key": "npc", "x": 5, "y": 1 }
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "zoneId": 2,
+      "roomGrid": { "x": 2, "y": 1, "w": 1, "h": 1 },
+      "worldTileOrigin": { "x": 20, "y": 6 },
+      "detail": {
+        "tileWidth": 10,
+        "tileHeight": 6,
+        "tilesEncoding": "raw2d",
+        "tiles": [
+          [1,1,1,1,1,1,1,1,1,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,0,0,0,4,4,4,0,0,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,1,1,1,1,1,1,1,1,1]
+        ],
+        "objects": []
+      }
+    }
+  ],
+  "connections": [
+    {
+      "fromId": 10,
+      "toId": 11,
+      "condition": "none",
+      "linkType": "door",
+      "doorwayA": { "roomId": 10, "worldTileX": 19, "worldTileY": 2, "facing": "RIGHT" },
+      "doorwayB": { "roomId": 11, "worldTileX": 20, "worldTileY": 2, "facing": "LEFT" }
+    },
+    {
+      "fromId": 11,
+      "toId": 12,
+      "condition": "dash",
+      "linkType": "door",
+      "doorwayA": { "roomId": 11, "worldTileX": 24, "worldTileY": 0, "facing": "UP" },
+      "doorwayB": { "roomId": 12, "worldTileX": 24, "worldTileY": 6, "facing": "DOWN" }
+    },
+    {
+      "fromId": 10,
+      "toId": 12,
+      "condition": "event_lock",
+      "linkType": "portal",
+      "portalA": { "roomId": 10, "worldTileX": 2, "worldTileY": 1, "facing": "UP" },
+      "portalB": { "roomId": 12, "worldTileX": 2, "worldTileY": 7, "facing": "DOWN" }
+    }
+  ]
+}
+

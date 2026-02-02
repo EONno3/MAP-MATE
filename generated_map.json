@@ -1,0 +1,843 @@
+{
+  "zones": [
+    {
+      "id": "zone_1",
+      "name": "Forgotten Crossroads",
+      "theme": "CENTRAL_HUB",
+      "rooms": [
+        {
+          "id": "room_001",
+          "type": "start",
+          "x": 100,
+          "y": 100,
+          "width": 6,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              6,
+              4
+            ]
+          ],
+          "depth": 0
+        },
+        {
+          "id": "room_002",
+          "type": "hub",
+          "x": 100,
+          "y": 95,
+          "width": 6,
+          "height": 5,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              6,
+              5
+            ]
+          ],
+          "depth": 1
+        },
+        {
+          "id": "room_024",
+          "type": "stag",
+          "x": 100,
+          "y": 91,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 2,
+          "name": "Stag Station (Zone 1)"
+        },
+        {
+          "id": "room_025",
+          "type": "normal",
+          "x": 100,
+          "y": 87,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 3
+        },
+        {
+          "id": "room_026",
+          "type": "save",
+          "x": 96,
+          "y": 89,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 4
+        },
+        {
+          "id": "room_027",
+          "type": "normal",
+          "x": 104,
+          "y": 91,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 2
+        },
+        {
+          "id": "room_028",
+          "type": "normal",
+          "x": 104,
+          "y": 87,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 3
+        },
+        {
+          "id": "room_029",
+          "type": "normal",
+          "x": 100,
+          "y": 83,
+          "width": 6,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              2,
+              0,
+              4,
+              4
+            ],
+            [
+              0,
+              1,
+              2,
+              2
+            ]
+          ],
+          "depth": 4
+        },
+        {
+          "id": "room_030",
+          "type": "save",
+          "x": 96,
+          "y": 85,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 5
+        },
+        {
+          "id": "room_031",
+          "type": "item",
+          "x": 106,
+          "y": 95,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 2,
+          "name": "Hidden Area (DASH required)"
+        }
+      ],
+      "connections": [
+        {
+          "from": "room_001",
+          "to": "room_002",
+          "direction": "UP",
+          "condition": "none"
+        },
+        {
+          "from": "room_002",
+          "to": "room_003",
+          "direction": "LEFT",
+          "condition": "none"
+        },
+        {
+          "from": "room_002",
+          "to": "room_009",
+          "direction": "RIGHT",
+          "condition": "dash"
+        },
+        {
+          "from": "room_002",
+          "to": "room_016",
+          "direction": "LEFT",
+          "condition": "wall_jump"
+        },
+        {
+          "from": "room_002",
+          "to": "room_024",
+          "direction": "UP",
+          "condition": "none"
+        },
+        {
+          "from": "room_002",
+          "to": "room_027",
+          "direction": "UP",
+          "condition": "none"
+        },
+        {
+          "from": "room_002",
+          "to": "room_031",
+          "direction": "RIGHT",
+          "condition": "dash"
+        },
+        {
+          "from": "room_024",
+          "to": "room_025",
+          "direction": "UP",
+          "condition": "none"
+        },
+        {
+          "from": "room_025",
+          "to": "room_026",
+          "direction": "LEFT",
+          "condition": "none"
+        },
+        {
+          "from": "room_027",
+          "to": "room_028",
+          "direction": "UP",
+          "condition": "none"
+        },
+        {
+          "from": "room_028",
+          "to": "room_029",
+          "direction": "UP",
+          "condition": "none"
+        },
+        {
+          "from": "room_029",
+          "to": "room_030",
+          "direction": "LEFT",
+          "condition": "none"
+        }
+      ]
+    },
+    {
+      "id": "zone_2",
+      "name": "Greenpath",
+      "theme": "OVERGROWN",
+      "rooms": [
+        {
+          "id": "room_003",
+          "type": "stag",
+          "x": 92,
+          "y": 93,
+          "width": 8,
+          "height": 3,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              8,
+              3
+            ]
+          ],
+          "depth": 2,
+          "name": "Stag Station (Zone 2)"
+        },
+        {
+          "id": "room_004",
+          "type": "normal",
+          "x": 88,
+          "y": 96,
+          "width": 6,
+          "height": 3,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              6,
+              3
+            ]
+          ],
+          "depth": 3
+        },
+        {
+          "id": "room_005",
+          "type": "map",
+          "x": 90,
+          "y": 100,
+          "width": 6,
+          "height": 3,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              6,
+              3
+            ]
+          ],
+          "depth": 3,
+          "name": "Map Maker (Zone 2)"
+        },
+        {
+          "id": "room_006",
+          "type": "normal",
+          "x": 84,
+          "y": 103,
+          "width": 8,
+          "height": 5,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              2,
+              8,
+              3
+            ],
+            [
+              0,
+              0,
+              2,
+              2
+            ]
+          ],
+          "depth": 4
+        },
+        {
+          "id": "room_007",
+          "type": "normal",
+          "x": 82,
+          "y": 100,
+          "width": 8,
+          "height": 3,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              8,
+              3
+            ]
+          ],
+          "depth": 5
+        },
+        {
+          "id": "room_008",
+          "type": "boss",
+          "x": 76,
+          "y": 103,
+          "width": 8,
+          "height": 6,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              8,
+              6
+            ]
+          ],
+          "depth": 6,
+          "name": "Boss (dash)"
+        }
+      ],
+      "connections": [
+        {
+          "from": "room_003",
+          "to": "room_002",
+          "direction": "RIGHT",
+          "condition": "none"
+        },
+        {
+          "from": "room_003",
+          "to": "room_004",
+          "direction": "LEFT",
+          "condition": "none"
+        },
+        {
+          "from": "room_004",
+          "to": "room_005",
+          "direction": "DOWN",
+          "condition": "none"
+        },
+        {
+          "from": "room_005",
+          "to": "room_006",
+          "direction": "LEFT",
+          "condition": "none"
+        },
+        {
+          "from": "room_005",
+          "to": "room_016",
+          "direction": "UP",
+          "condition": "wall_jump"
+        },
+        {
+          "from": "room_006",
+          "to": "room_007",
+          "direction": "UP",
+          "condition": "none"
+        },
+        {
+          "from": "room_007",
+          "to": "room_008",
+          "direction": "LEFT",
+          "condition": "none"
+        }
+      ]
+    },
+    {
+      "id": "zone_3",
+      "name": "City of Tears",
+      "theme": "URBAN",
+      "rooms": [
+        {
+          "id": "room_009",
+          "type": "stag",
+          "x": 106,
+          "y": 99,
+          "width": 3,
+          "height": 8,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              3,
+              8
+            ]
+          ],
+          "depth": 2,
+          "name": "Stag Station (Zone 3)"
+        },
+        {
+          "id": "room_010",
+          "type": "save",
+          "x": 109,
+          "y": 99,
+          "width": 3,
+          "height": 6,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              3,
+              6
+            ]
+          ],
+          "depth": 3,
+          "name": "Bench (near Boss 15)"
+        },
+        {
+          "id": "room_011",
+          "type": "normal",
+          "x": 110,
+          "y": 91,
+          "width": 3,
+          "height": 8,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              3,
+              8
+            ]
+          ],
+          "depth": 4
+        },
+        {
+          "id": "room_012",
+          "type": "normal",
+          "x": 112,
+          "y": 99,
+          "width": 3,
+          "height": 8,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              3,
+              8
+            ]
+          ],
+          "depth": 5
+        },
+        {
+          "id": "room_013",
+          "type": "normal",
+          "x": 113,
+          "y": 93,
+          "width": 3,
+          "height": 6,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              3,
+              6
+            ]
+          ],
+          "depth": 6
+        },
+        {
+          "id": "room_014",
+          "type": "normal",
+          "x": 115,
+          "y": 99,
+          "width": 5,
+          "height": 8,
+          "morphology": "rect",
+          "rects": [
+            [
+              2,
+              0,
+              3,
+              8
+            ],
+            [
+              0,
+              2,
+              2,
+              2
+            ]
+          ],
+          "depth": 7
+        },
+        {
+          "id": "room_015",
+          "type": "boss",
+          "x": 116,
+          "y": 93,
+          "width": 8,
+          "height": 6,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              8,
+              6
+            ]
+          ],
+          "depth": 8,
+          "name": "Boss (wall_jump)"
+        }
+      ],
+      "connections": [
+        {
+          "from": "room_009",
+          "to": "room_002",
+          "direction": "LEFT",
+          "condition": "dash"
+        },
+        {
+          "from": "room_009",
+          "to": "room_010",
+          "direction": "RIGHT",
+          "condition": "none"
+        },
+        {
+          "from": "room_010",
+          "to": "room_011",
+          "direction": "UP",
+          "condition": "none"
+        },
+        {
+          "from": "room_011",
+          "to": "room_012",
+          "direction": "DOWN",
+          "condition": "none"
+        },
+        {
+          "from": "room_012",
+          "to": "room_013",
+          "direction": "UP",
+          "condition": "none"
+        },
+        {
+          "from": "room_013",
+          "to": "room_014",
+          "direction": "DOWN",
+          "condition": "none"
+        },
+        {
+          "from": "room_014",
+          "to": "room_015",
+          "direction": "UP",
+          "condition": "none"
+        }
+      ]
+    },
+    {
+      "id": "zone_4",
+      "name": "Deepnest",
+      "theme": "DARK_LABYRINTH",
+      "rooms": [
+        {
+          "id": "room_016",
+          "type": "normal",
+          "x": 94,
+          "y": 96,
+          "width": 6,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              2,
+              0,
+              4,
+              4
+            ],
+            [
+              0,
+              0,
+              2,
+              2
+            ]
+          ],
+          "depth": 2
+        },
+        {
+          "id": "room_017",
+          "type": "save",
+          "x": 96,
+          "y": 100,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 3,
+          "name": "Bench (near Boss 8)"
+        },
+        {
+          "id": "room_018",
+          "type": "stag",
+          "x": 92,
+          "y": 103,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 4,
+          "name": "Stag Station (Zone 4)"
+        },
+        {
+          "id": "room_019",
+          "type": "normal",
+          "x": 92,
+          "y": 107,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 5
+        },
+        {
+          "id": "room_020",
+          "type": "save",
+          "x": 88,
+          "y": 108,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 6,
+          "name": "Bench (near Boss 23)"
+        },
+        {
+          "id": "room_021",
+          "type": "normal",
+          "x": 92,
+          "y": 111,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 7
+        },
+        {
+          "id": "room_022",
+          "type": "normal",
+          "x": 88,
+          "y": 112,
+          "width": 4,
+          "height": 4,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              4,
+              4
+            ]
+          ],
+          "depth": 8
+        },
+        {
+          "id": "room_023",
+          "type": "boss",
+          "x": 92,
+          "y": 115,
+          "width": 8,
+          "height": 6,
+          "morphology": "rect",
+          "rects": [
+            [
+              0,
+              0,
+              8,
+              6
+            ]
+          ],
+          "depth": 9
+        }
+      ],
+      "connections": [
+        {
+          "from": "room_016",
+          "to": "room_002",
+          "direction": "RIGHT",
+          "condition": "wall_jump"
+        },
+        {
+          "from": "room_016",
+          "to": "room_017",
+          "direction": "DOWN",
+          "condition": "none"
+        },
+        {
+          "from": "room_016",
+          "to": "room_005",
+          "direction": "DOWN",
+          "condition": "wall_jump"
+        },
+        {
+          "from": "room_017",
+          "to": "room_018",
+          "direction": "LEFT",
+          "condition": "none"
+        },
+        {
+          "from": "room_018",
+          "to": "room_019",
+          "direction": "DOWN",
+          "condition": "none"
+        },
+        {
+          "from": "room_019",
+          "to": "room_020",
+          "direction": "LEFT",
+          "condition": "none"
+        },
+        {
+          "from": "room_020",
+          "to": "room_021",
+          "direction": "RIGHT",
+          "condition": "none"
+        },
+        {
+          "from": "room_021",
+          "to": "room_022",
+          "direction": "LEFT",
+          "condition": "none"
+        },
+        {
+          "from": "room_022",
+          "to": "room_023",
+          "direction": "RIGHT",
+          "condition": "none"
+        }
+      ]
+    }
+  ]
+}

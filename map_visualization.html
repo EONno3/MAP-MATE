@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Metroidvania Map Visualization</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        .map-container {
+            background: #000;
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            overflow: auto;
+            margin-bottom: 30px;
+        }
+        svg {
+            display: block;
+            margin: 0 auto;
+        }
+        .room {
+            stroke: #666;
+            stroke-width: 1;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .room:hover {
+            opacity: 0.8;
+            stroke: #fff;
+            stroke-width: 2;
+        }
+        .connection {
+            stroke: #444;
+            stroke-width: 2;
+            fill: none;
+        }
+        .connection.gated {
+            stroke: #ff6b6b;
+            stroke-dasharray: 5,5;
+            stroke-width: 2;
+        }
+        .room-label {
+            font-size: 10px;
+            fill: #fff;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+        .legend {
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .legend h3 {
+            margin-top: 0;
+            color: #fff;
+        }
+        .legend-item {
+            display: inline-block;
+            margin-right: 20px;
+            margin-bottom: 10px;
+        }
+        .legend-color {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 1px solid #666;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        .stats {
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .stat-box {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 3px solid #4CAF50;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 5px;
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #666;
+            border-radius: 5px;
+            padding: 10px;
+            pointer-events: none;
+            display: none;
+            max-width: 300px;
+            z-index: 1000;
+        }
+        .tooltip-title {
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 5px;
+        }
+        .tooltip-detail {
+            font-size: 12px;
+            color: #ccc;
+            margin: 2px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ Metroidvania Map Visualization</h1>
+        <p class="subtitle">Generated from AI_MAP_GENERATION_SPEC.md</p>
+        
+        <div class="legend">
+            <h3>🎨 Legend</h3>
+<div class="legend-item"><span class="legend-color" style="background: #A0A0A0;"></span>Forgotten Crossroads</div><div class="legend-item"><span class="legend-color" style="background: #408040;"></span>Greenpath</div><div class="legend-item"><span class="legend-color" style="background: #303080;"></span>City of Tears</div><div class="legend-item"><span class="legend-color" style="background: #303030;"></span>Deepnest</div>
+            <br>
+            <div class="legend-item"><span class="legend-color" style="background: #ff6b6b; border-style: dashed;"></span>Gated Connection</div>
+            <div class="legend-item"><span class="legend-color" style="background: #444;"></span>Free Connection</div>
+        </div>
+        
+        <div class="stats">
+
+            <div class="stat-box">
+                <div class="stat-label">Total Zones</div>
+                <div class="stat-value">4</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-label">Total Rooms</div>
+                <div class="stat-value">27</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-label">Total Connections</div>
+                <div class="stat-value">36</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-label">Gated Connections</div>
+                <div class="stat-value">7</div>
+            </div>
+
+        </div>
+        
+        <div class="map-container">
+<svg width="560" height="370" viewBox="0 0 560 370">
+<!-- Connections -->
+<line class="connection" x1="300.0" y1="260.0" x2="300.0" y2="215.0" />
+<line class="connection" x1="300.0" y1="215.0" x2="230.0" y2="185.0" />
+<line class="connection gated" x1="300.0" y1="215.0" x2="325.0" y2="150.0" />
+<line class="connection gated" x1="300.0" y1="215.0" x2="240.0" y2="220.0" />
+<line class="connection" x1="300.0" y1="215.0" x2="290.0" y2="170.0" />
+<line class="connection" x1="300.0" y1="215.0" x2="350.0" y2="250.0" />
+<line class="connection gated" x1="300.0" y1="215.0" x2="350.0" y2="210.0" />
+<line class="connection" x1="290.0" y1="170.0" x2="290.0" y2="130.0" />
+<line class="connection" x1="290.0" y1="130.0" x2="240.0" y2="150.0" />
+<line class="connection" x1="240.0" y1="150.0" x2="250.0" y2="110.0" />
+<line class="connection" x1="350.0" y1="250.0" x2="350.0" y2="290.0" />
+<line class="connection" x1="350.0" y1="290.0" x2="300.0" y2="300.0" />
+<line class="connection" x1="300.0" y1="300.0" x2="250.0" y2="290.0" />
+<line class="connection" x1="230.0" y1="185.0" x2="300.0" y2="215.0" />
+<line class="connection" x1="230.0" y1="185.0" x2="160.0" y2="145.0" />
+<line class="connection" x1="160.0" y1="145.0" x2="170.0" y2="295.0" />
+<line class="connection" x1="170.0" y1="295.0" x2="230.0" y2="255.0" />
+<line class="connection" x1="230.0" y1="255.0" x2="160.0" y2="245.0" />
+<line class="connection gated" x1="230.0" y1="255.0" x2="240.0" y2="220.0" />
+<line class="connection" x1="160.0" y1="245.0" x2="90.0" y2="200.0" />
+<line class="connection gated" x1="325.0" y1="150.0" x2="300.0" y2="215.0" />
+<line class="connection" x1="325.0" y1="150.0" x2="355.0" y2="150.0" />
+<line class="connection" x1="355.0" y1="150.0" x2="365.0" y2="80.0" />
+<line class="connection" x1="365.0" y1="80.0" x2="385.0" y2="140.0" />
+<line class="connection" x1="385.0" y1="140.0" x2="405.0" y2="80.0" />
+<line class="connection" x1="405.0" y1="80.0" x2="425.0" y2="140.0" />
+<line class="connection" x1="425.0" y1="140.0" x2="470.0" y2="80.0" />
+<line class="connection gated" x1="240.0" y1="220.0" x2="300.0" y2="215.0" />
+<line class="connection" x1="240.0" y1="220.0" x2="190.0" y2="220.0" />
+<line class="connection gated" x1="240.0" y1="220.0" x2="230.0" y2="255.0" />
+<line class="connection" x1="190.0" y1="220.0" x2="150.0" y2="190.0" />
+<!-- Rooms -->
+<rect class="room" x="270" y="240" width="60" height="40" fill="#FFD700" opacity="1.0" data-info="room_001|Type: start|Depth: 0" />
+<text class="room-label" x="300.0" y="264.0">S</text>
+<rect class="room" x="270" y="190" width="60" height="50" fill="#FFD700" opacity="0.7" data-info="room_002|Type: hub|Depth: 1" />
+<rect class="room" x="270" y="150" width="40" height="40" fill="#4CAF50" opacity="0.7" data-info="Bench (near Boss 8)|Type: save|Depth: 2" />
+<text class="room-label" x="290.0" y="174.0">💾</text>
+<rect class="room" x="270" y="110" width="40" height="40" fill="#2196F3" opacity="0.7" data-info="Stag Station (Zone 1)|Type: stag|Depth: 3" />
+<text class="room-label" x="290.0" y="134.0">🚉</text>
+<rect class="room" x="210" y="130" width="60" height="40" fill="#2196F3" opacity="0.7" data-info="room_026|Type: normal|Depth: 4" />
+<rect class="room" x="230" y="90" width="40" height="40" fill="#4CAF50" opacity="0.7" data-info="room_027|Type: save|Depth: 5" />
+<text class="room-label" x="250.0" y="114.0">💾</text>
+<rect class="room" x="330" y="230" width="40" height="40" fill="#4CAF50" opacity="0.7" data-info="room_028|Type: normal|Depth: 2" />
+<rect class="room" x="330" y="270" width="40" height="40" fill="#4CAF50" opacity="0.7" data-info="room_029|Type: normal|Depth: 3" />
+<rect class="room" x="270" y="280" width="60" height="40" fill="#4CAF50" opacity="0.7" data-info="room_030|Type: normal|Depth: 4" />
+<rect class="room" x="230" y="270" width="40" height="40" fill="#4CAF50" opacity="0.7" data-info="room_031|Type: item|Depth: 5" />
+<rect class="room" x="330" y="190" width="40" height="40" fill="#4CAF50" opacity="0.7" data-info="Hidden Area (DASH required)|Type: item|Depth: 2" />
+<rect class="room" x="190" y="170" width="80" height="30" fill="#2196F3" opacity="0.7" data-info="Stag Station (Zone 2)|Type: stag|Depth: 2" />
+<text class="room-label" x="230.0" y="189.0">🚉</text>
+<rect class="room" x="120" y="120" width="80" height="50" fill="#2196F3" opacity="0.7" data-info="room_004|Type: normal|Depth: 3" />
+<rect class="room" x="140" y="270" width="60" height="50" fill="#2196F3" opacity="0.7" data-info="room_005|Type: normal|Depth: 4" />
+<rect class="room" x="190" y="240" width="80" height="30" fill="#2196F3" opacity="0.7" data-info="room_006|Type: normal|Depth: 3" />
+<rect class="room" x="130" y="220" width="60" height="50" fill="#2196F3" opacity="0.7" data-info="room_007|Type: normal|Depth: 4" />
+<rect class="room" x="50" y="170" width="80" height="60" fill="#FF0000" opacity="0.9" data-info="Boss (dash)|Type: boss|Depth: 5" />
+<text class="room-label" x="90.0" y="204.0">B</text>
+<rect class="room" x="310" y="110" width="30" height="80" fill="#2196F3" opacity="0.7" data-info="Stag Station (Zone 3)|Type: stag|Depth: 2" />
+<text class="room-label" x="325.0" y="154.0">🚉</text>
+<rect class="room" x="340" y="110" width="30" height="80" fill="#2196F3" opacity="0.7" data-info="Map Maker (Zone 3)|Type: map|Depth: 3" />
+<text class="room-label" x="355.0" y="154.0">🗺️</text>
+<rect class="room" x="350" y="50" width="30" height="60" fill="#4CAF50" opacity="0.7" data-info="Bench (near Boss 15)|Type: save|Depth: 4" />
+<text class="room-label" x="365.0" y="84.0">💾</text>
+<rect class="room" x="370" y="110" width="30" height="60" fill="#4CAF50" opacity="0.7" data-info="room_012|Type: normal|Depth: 5" />
+<rect class="room" x="380" y="50" width="50" height="60" fill="#4CAF50" opacity="0.7" data-info="room_013|Type: normal|Depth: 6" />
+<rect class="room" x="400" y="110" width="50" height="60" fill="#4CAF50" opacity="0.7" data-info="room_014|Type: normal|Depth: 7" />
+<rect class="room" x="430" y="50" width="80" height="60" fill="#FF0000" opacity="0.9" data-info="Boss (wall_jump)|Type: boss|Depth: 8" />
+<text class="room-label" x="470.0" y="84.0">B</text>
+<rect class="room" x="210" y="200" width="60" height="40" fill="#303030" opacity="0.7" data-info="room_016|Type: normal|Depth: 2" />
+<rect class="room" x="170" y="200" width="40" height="40" fill="#2196F3" opacity="0.7" data-info="Stag Station (Zone 4)|Type: stag|Depth: 3" />
+<text class="room-label" x="190.0" y="224.0">🚉</text>
+<rect class="room" x="130" y="170" width="40" height="40" fill="#4CAF50" opacity="0.7" data-info="Bench (near Boss 23)|Type: save|Depth: 4" />
+<text class="room-label" x="150.0" y="194.0">💾</text>
+
+</svg>
+        </div>
+    </div>
+    
+    <div id="tooltip" class="tooltip"></div>
+    
+    <script>
+        const rooms = document.querySelectorAll('.room');
+        const tooltip = document.getElementById('tooltip');
+        
+        rooms.forEach(room => {
+            room.addEventListener('mouseenter', (e) => {
+                const info = room.dataset.info.split('|');
+                tooltip.innerHTML = `
+                    <div class="tooltip-title">${info[0]}</div>
+                    <div class="tooltip-detail">${info[1]}</div>
+                    <div class="tooltip-detail">${info[2]}</div>
+                `;
+                tooltip.style.display = 'block';
+            });
+            
+            room.addEventListener('mousemove', (e) => {
+                tooltip.style.left = (e.pageX + 10) + 'px';
+                tooltip.style.top = (e.pageY + 10) + 'px';
+            });
+            
+            room.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>

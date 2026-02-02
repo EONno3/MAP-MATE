@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mapmate.unity.v1.schema.json",
+  "title": "Mapmate Unity Export v1",
+  "type": "object",
+  "required": ["schemaVersion", "tilesPerChunkX", "tilesPerChunkY", "tilePalette", "objectPalette", "rooms", "connections"],
+  "properties": {
+    "schemaVersion": { "const": "mapmate.unity/v1" },
+    "exportedAt": { "type": "string" },
+    "tilesPerChunkX": { "type": "integer", "minimum": 1 },
+    "tilesPerChunkY": { "type": "integer", "minimum": 1 },
+    "tilePalette": {
+      "type": "object",
+      "required": ["byId"],
+      "properties": {
+        "byId": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "key"],
+            "properties": {
+              "id": { "type": "integer", "minimum": 0 },
+              "key": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "objectPalette": {
+      "type": "object",
+      "required": ["byKey"],
+      "properties": {
+        "byKey": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key"],
+            "properties": {
+              "key": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "rooms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "zoneId", "roomGrid", "worldTileOrigin", "detail"],
+        "properties": {
+          "id": { "type": "integer" },
+          "zoneId": { "type": "integer" },
+          "roomGrid": {
+            "type": "object",
+            "required": ["x", "y", "w", "h"],
+            "properties": {
+              "x": { "type": "integer" },
+              "y": { "type": "integer" },
+              "w": { "type": "integer", "minimum": 1 },
+              "h": { "type": "integer", "minimum": 1 }
+            },
+            "additionalProperties": true
+          },
+          "worldTileOrigin": {
+            "type": "object",
+            "required": ["x", "y"],
+            "properties": {
+              "x": { "type": "integer" },
+              "y": { "type": "integer" }
+            },
+            "additionalProperties": true
+          },
+          "detail": {
+            "type": "object",
+            "required": ["tileWidth", "tileHeight", "tilesEncoding", "tiles", "objects"],
+            "properties": {
+              "tileWidth": { "type": "integer", "minimum": 1 },
+              "tileHeight": { "type": "integer", "minimum": 1 },
+              "tilesEncoding": { "enum": ["raw2d", "rle1d"] },
+              "tiles": {},
+              "objects": { "type": "array" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["fromId", "toId", "condition", "linkType"],
+        "properties": {
+          "fromId": { "type": "integer" },
+          "toId": { "type": "integer" },
+          "condition": { "type": "string" },
+          "linkType": { "enum": ["door", "portal"] },
+          "doorwayA": { "type": "object" },
+          "doorwayB": { "type": "object" },
+          "portalA": { "type": "object" },
+          "portalB": { "type": "object" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
+
