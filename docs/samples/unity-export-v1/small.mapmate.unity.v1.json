@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "mapmate.unity/v1",
+  "exportedAt": "2026-02-02T00:00:00Z",
+  "tilesPerChunkX": 10,
+  "tilesPerChunkY": 6,
+  "tilePalette": {
+    "byId": [
+      { "id": 0, "key": "empty" },
+      { "id": 1, "key": "solid" },
+      { "id": 2, "key": "platform" },
+      { "id": 3, "key": "spike" },
+      { "id": 4, "key": "door" }
+    ]
+  },
+  "objectPalette": {
+    "byKey": [
+      { "key": "spawn_point", "prefabKey": "SpawnPoint" },
+      { "key": "transition", "prefabKey": "DoorTrigger" }
+    ]
+  },
+  "rooms": [
+    {
+      "id": 1,
+      "zoneId": 1,
+      "roomGrid": { "x": 0, "y": 0, "w": 1, "h": 1 },
+      "worldTileOrigin": { "x": 0, "y": 0 },
+      "detail": {
+        "tileWidth": 10,
+        "tileHeight": 6,
+        "tilesEncoding": "raw2d",
+        "tiles": [
+          [1,1,1,1,1,1,1,1,1,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,1,1,1,1,1,1,1,1,1]
+        ],
+        "objects": [
+          { "key": "spawn_point", "x": 2, "y": 1 }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "zoneId": 1,
+      "roomGrid": { "x": 1, "y": 0, "w": 1, "h": 1 },
+      "worldTileOrigin": { "x": 10, "y": 0 },
+      "detail": {
+        "tileWidth": 10,
+        "tileHeight": 6,
+        "tilesEncoding": "raw2d",
+        "tiles": [
+          [1,1,1,1,1,1,1,1,1,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,0,0,0,0,0,0,0,0,1],
+          [1,1,1,1,1,1,1,1,1,1]
+        ],
+        "objects": []
+      }
+    }
+  ],
+  "connections": [
+    {
+      "fromId": 1,
+      "toId": 2,
+      "condition": "none",
+      "linkType": "door",
+      "doorwayA": { "roomId": 1, "worldTileX": 9, "worldTileY": 2, "facing": "RIGHT" },
+      "doorwayB": { "roomId": 2, "worldTileX": 10, "worldTileY": 2, "facing": "LEFT" }
+    }
+  ]
+}
+

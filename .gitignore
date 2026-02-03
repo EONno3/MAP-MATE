@@ -51,9 +51,6 @@ lerna-debug.log*
 *.temp
 .cache
 
-# Backup
-bak/
-
 # Python
 __pycache__
 *.py[cod]
@@ -66,6 +63,11 @@ ENV
 
 # Generated files
 /packages/backend-api/src/generated/prisma
-demo_output.json
-generated_map.json
-map_visualization.html
+
+# Local AI/IDE tooling
+.cursor/
+.gemini/
+.vooster/
+
+# Backups
+bak/

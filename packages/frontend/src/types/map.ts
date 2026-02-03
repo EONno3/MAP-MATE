@@ -5,14 +5,12 @@
 // ============================================
 
 // 타일 타입 (지형)
-export type TileType = 
-  | 'empty'      // 빈 공간 (통과 가능)
-  | 'solid'      // 벽/바닥 (통과 불가)
-  | 'platform'   // 플랫폼 (위에서 착지, 아래로 통과)
-  | 'spike'      // 가시 (데미지)
-  | 'acid'       // 산성 (데미지, 수영 필요)
-  | 'breakable'  // 부서지는 벽
-  | 'door'       // 문 (조건부 통과)
+// NOTE:
+// - 기본 타일은 아래 BUILTIN_TILE_TYPES로 정의됩니다.
+// - 사용자 커스텀 타일(추가 타일)은 문자열 키로 확장 가능합니다.
+export const BUILTIN_TILE_TYPES = ['empty', 'solid', 'platform', 'spike', 'acid', 'breakable', 'door'] as const
+export type BuiltInTileType = (typeof BUILTIN_TILE_TYPES)[number]
+export type TileType = string
 
 // 오브젝트 타입
 export type ObjectType =
@@ -43,8 +41,8 @@ export interface RoomDetail {
   objects: RoomObject[]
 }
 
-// 타일 아이콘 매핑
-export const TILE_ICONS: Record<TileType, string> = {
+// 타일 아이콘 매핑 (레거시: UI에서 아이콘을 제거하는 방향이므로 의존 최소화)
+export const TILE_ICONS: Record<string, string> = {
   empty: '⬜',
   solid: '⬛',
   platform: '▫️',
@@ -55,7 +53,7 @@ export const TILE_ICONS: Record<TileType, string> = {
 }
 
 // 타일 색상 매핑
-export const TILE_COLORS: Record<TileType, string> = {
+export const TILE_COLORS: Record<string, string> = {
   empty: 'transparent',
   solid: '#444444',
   platform: '#8B4513',

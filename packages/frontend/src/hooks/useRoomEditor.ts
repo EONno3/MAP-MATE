@@ -81,7 +81,7 @@ export function useRoomEditor(initialRoom: Room | null = null): UseRoomEditorRet
     redo,
     canUndo,
     canRedo,
-    clear: clearHistory
+    reset: resetHistory
   } = useHistory<RoomDetail | null>(initialDetail)
 
   // 방 설정
@@ -89,13 +89,11 @@ export function useRoomEditor(initialRoom: Room | null = null): UseRoomEditorRet
     setEditingRoomState(room)
     if (room) {
       const detail = room.detail || generateDefaultRoomDetail(room)
-      clearHistory()
-      setRoomDetailHistory(detail, false)
+      resetHistory(detail)
     } else {
-      clearHistory()
-      setRoomDetailHistory(null, false)
+      resetHistory(null)
     }
-  }, [generateDefaultRoomDetail, clearHistory, setRoomDetailHistory])
+  }, [generateDefaultRoomDetail, resetHistory])
 
   // 상세맵 직접 설정
   const setRoomDetail = useCallback((detail: RoomDetail) => {

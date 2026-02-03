@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react'
 export interface RadialMenuItem {
   id: string
   label: string
-  icon: string
+  icon?: string
   color?: string
 }
 
@@ -194,7 +194,8 @@ export function RadialMenu({ items, position, visible, onSelect, onClose, title 
                 width: ITEM_SIZE,
                 height: ITEM_SIZE,
                 borderRadius: '50%',
-                backgroundColor: isHovered ? (item.color || '#4f46e5') : '#252530',
+                // 타일 휠은 "색상만" 보여주기 위해 기본 상태에서도 color를 사용
+                backgroundColor: item.color || '#252530',
                 border: isHovered ? '2px solid #fff' : '2px solid #444',
                 display: 'flex',
                 flexDirection: 'column',
@@ -206,7 +207,7 @@ export function RadialMenu({ items, position, visible, onSelect, onClose, title 
                 zIndex: isHovered ? 20 : 5
               }}
             >
-              <span style={{ fontSize: 20 }}>{item.icon}</span>
+              {item.icon ? <span style={{ fontSize: 20 }}>{item.icon}</span> : null}
             </div>
           )
         })}
@@ -228,7 +229,7 @@ export function RadialMenu({ items, position, visible, onSelect, onClose, title 
             whiteSpace: 'nowrap',
             zIndex: 30
           }}>
-            {items[hoveredIndex].icon} {items[hoveredIndex].label}
+            {items[hoveredIndex].icon ? `${items[hoveredIndex].icon} ` : ''}{items[hoveredIndex].label}
           </div>
         )}
       </div>

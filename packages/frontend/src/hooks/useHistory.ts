@@ -14,7 +14,9 @@ interface UseHistoryReturn<T> {
   redo: () => void
   canUndo: boolean
   canRedo: boolean
+  commit: () => void
   clear: () => void
+  reset: (newState: T) => void
   history: HistoryState<T>
 }
 
@@ -92,6 +94,21 @@ export function useHistory<T>(initialState: T): UseHistoryReturn<T> {
     })
   }, [])
 
+  // Commit an in-progress checkpoint (recordHistory=false) without changing present.
+  // Useful when an input unmounts before onBlur can call set(..., true).
+  const commit = useCallback(() => {
+    setHistory(prev => {
+      if (prev.checkpoint === null) return prev
+      const newPast = [...prev.past, prev.checkpoint].slice(-MAX_HISTORY_SIZE)
+      return {
+        past: newPast,
+        present: prev.present,
+        future: [], // new action should invalidate redo stack
+        checkpoint: null
+      }
+    })
+  }, [])
+
   // Clear history
   const clear = useCallback(() => {
     setHistory(prev => ({
@@ -100,6 +117,17 @@ export function useHistory<T>(initialState: T): UseHistoryReturn<T> {
       future: [],
       checkpoint: null
     }))
+  }, [])
+
+  // Reset history to a new present state (no checkpoint)
+  // Use when loading/importing to avoid saving a stale checkpoint.
+  const reset = useCallback((newState: T) => {
+    setHistory({
+      past: [],
+      present: newState,
+      future: [],
+      checkpoint: null
+    })
   }, [])
 
   // NOTE: Keyboard shortcuts removed from here to prevent conflicts
@@ -112,7 +140,9 @@ export function useHistory<T>(initialState: T): UseHistoryReturn<T> {
     redo,
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
+    commit,
     clear,
+    reset,
     history
   }
 }

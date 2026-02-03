@@ -1,16 +1,18 @@
 import React from 'react'
-import { TileType, TILE_ICONS, TILE_COLORS } from '../../types/map'
+import { TileType, TILE_COLORS } from '../../types/map'
 import { Translations } from '../../i18n/translations'
 
 interface TilePaletteProps {
   selectedTile: TileType
   onSelectTile: (tile: TileType) => void
+  tileColors?: Partial<Record<TileType, string>>
   t: Translations
+  tiles?: Array<{ key: string; label: string; color: string }>
 }
 
 const TILES: TileType[] = ['empty', 'solid', 'platform', 'spike', 'acid', 'breakable', 'door']
 
-export function TilePalette({ selectedTile, onSelectTile, t }: TilePaletteProps) {
+export function TilePalette({ selectedTile, onSelectTile, tileColors, t, tiles }: TilePaletteProps) {
   const getTileName = (tile: TileType): string => {
     const names: Record<TileType, keyof Translations> = {
       empty: 'tileEmpty',
@@ -23,6 +25,8 @@ export function TilePalette({ selectedTile, onSelectTile, t }: TilePaletteProps)
     }
     return t[names[tile]] as string
   }
+
+  const displayTiles = tiles ?? TILES.map((k) => ({ key: k, label: getTileName(k), color: (tileColors?.[k] ?? TILE_COLORS[k]) as string }))
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -39,50 +43,51 @@ export function TilePalette({ selectedTile, onSelectTile, t }: TilePaletteProps)
       
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
+        gridTemplateColumns: 'repeat(3, 1fr)',
         gap: 8
       }}>
-        {TILES.map(tile => (
+        {displayTiles.map((tile) => (
           <button
-            key={tile}
-            onClick={() => onSelectTile(tile)}
-            title={getTileName(tile)}
+            key={tile.key}
+            onClick={() => onSelectTile(tile.key as TileType)}
+            title={tile.label}
             style={{
-              padding: '10px 8px',
-              backgroundColor: selectedTile === tile ? '#4CAF50' : '#252530',
-              border: selectedTile === tile ? '2px solid #4CAF50' : '1px solid #444',
+              padding: 6,
+              backgroundColor: selectedTile === tile.key ? '#4CAF50' : '#252530',
+              border: selectedTile === tile.key ? '2px solid #4CAF50' : '1px solid #444',
               borderRadius: 6,
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: 4,
+              minWidth: 0,
               transition: 'all 0.15s'
             }}
           >
             <div style={{
-              width: 24,
-              height: 24,
-              backgroundColor: TILE_COLORS[tile],
-              border: tile === 'empty' ? '1px dashed #666' : 'none',
+              width: '100%',
+              height: 34,
+              backgroundColor: tile.color,
+              border: tile.key === 'empty' ? '1px dashed #666' : 'none',
               borderRadius: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 14
+              display: 'block'
             }}>
-              {tile !== 'empty' && tile !== 'solid' && TILE_ICONS[tile]}
             </div>
-            <span style={{
+            {/* 아이콘은 제거하고, 타일명은 표시(실시간 연동) */}
+            <div style={{
+              width: '100%',
               fontSize: 10,
-              color: selectedTile === tile ? '#fff' : '#aaa',
+              lineHeight: 1.15,
+              color: '#ddd',
+              textAlign: 'center',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              maxWidth: '100%'
+              wordBreak: 'keep-all'
             }}>
-              {getTileName(tile)}
-            </span>
+              {tile.label}
+            </div>
           </button>
         ))}
       </div>

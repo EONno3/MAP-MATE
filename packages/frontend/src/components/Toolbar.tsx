@@ -1,16 +1,16 @@
 import React from 'react'
-import { Translations, Language } from '../i18n/translations'
+import { Translations } from '../i18n/translations'
 import { EditorTool } from '../types/map'
 
 interface ToolbarProps {
   onGenerate: () => void
   onExport: () => void
+  onExportUnity: () => void
   onImport: () => void
   loading: boolean
   roomCount: number
   t: Translations
-  language: Language
-  onLanguageChange: (lang: Language) => void
+  buildId?: string
   // Editor tools
   currentTool?: EditorTool
   onToolChange?: (tool: EditorTool) => void
@@ -24,12 +24,12 @@ interface ToolbarProps {
 export function Toolbar({ 
   onGenerate, 
   onExport, 
+  onExportUnity,
   onImport, 
   loading, 
   roomCount,
   t,
-  language,
-  onLanguageChange,
+  buildId,
   currentTool = 'select',
   onToolChange,
   canUndo = false,
@@ -71,7 +71,14 @@ export function Toolbar({
         gap: 8
       }}>
         <span style={{ fontSize: 24 }}>🗺️</span>
-        <span>{t.appName}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+          <span>{t.appName}</span>
+          {buildId && (
+            <span style={{ fontSize: 10, fontWeight: 500, color: '#8b8b9a' }}>
+              {buildId}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Divider */}
@@ -131,35 +138,48 @@ export function Toolbar({
         {t.exportJson}
       </button>
 
+      {/* Export Unity Button */}
+      <button
+        onClick={onExportUnity}
+        disabled={roomCount === 0}
+        style={{
+          padding: '8px 16px',
+          backgroundColor: roomCount === 0 ? '#333' : '#0ea5e9',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 6,
+          cursor: roomCount === 0 ? 'not-allowed' : 'pointer',
+          fontSize: 13,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
+        }}
+      >
+        <span>🧩</span>
+        {t.exportUnity}
+      </button>
+
       {/* Import Button */}
-      <label style={{
-        padding: '8px 16px',
-        backgroundColor: '#7b1fa2',
-        color: '#fff',
-        border: 'none',
-        borderRadius: 6,
-        cursor: 'pointer',
-        fontSize: 13,
-        fontWeight: 600,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6
-      }}>
+      <button
+        onClick={onImport}
+        style={{
+          padding: '8px 16px',
+          backgroundColor: '#7b1fa2',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 6,
+          cursor: 'pointer',
+          fontSize: 13,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
+        }}
+      >
         <span>📂</span>
         {t.importJson}
-        <input
-          type="file"
-          accept=".json"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) {
-              onImport()
-            }
-            e.target.value = ''
-          }}
-          style={{ display: 'none' }}
-        />
-      </label>
+      </button>
 
       {/* Divider */}
       <div style={{ width: 1, height: 30, backgroundColor: '#333' }} />
@@ -235,43 +255,6 @@ export function Toolbar({
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
-
-      {/* Language Selector */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-        marginRight: 16
-      }}>
-        <button
-          onClick={() => onLanguageChange('ko')}
-          style={{
-            padding: '4px 8px',
-            backgroundColor: language === 'ko' ? '#4CAF50' : 'transparent',
-            border: language === 'ko' ? 'none' : '1px solid #444',
-            borderRadius: 4,
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: 12
-          }}
-        >
-          🇰🇷 한국어
-        </button>
-        <button
-          onClick={() => onLanguageChange('en')}
-          style={{
-            padding: '4px 8px',
-            backgroundColor: language === 'en' ? '#4CAF50' : 'transparent',
-            border: language === 'en' ? 'none' : '1px solid #444',
-            borderRadius: 4,
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: 12
-          }}
-        >
-          🇺🇸 EN
-        </button>
-      </div>
 
       {/* Stats */}
       <div style={{

@@ -6,7 +6,12 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api': 'http://localhost:8000'
+      // Dev server proxy for local Backend AI (FastAPI, :8000)
+      // Frontend uses /generate* endpoints by default, so proxy both /api and /generate.
+      '/api': 'http://localhost:8000',
+      '/generate': 'http://localhost:8000',
+      '/health': 'http://localhost:8000',
+      '/healthz': 'http://localhost:8000',
     }
   }
 })

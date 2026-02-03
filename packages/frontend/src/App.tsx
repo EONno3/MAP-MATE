@@ -6,20 +6,25 @@ import { ParamPanel, GenerateParams } from './components/ParamPanel'
 import { RoomEditor } from './components/room-editor'
 import { ZonePanel } from './components/ZonePanel'
 import { useMapState } from './hooks/useMapState'
-import { translations, Language, Translations } from './i18n/translations'
+import { translations, Translations } from './i18n/translations'
 import { Room, EditorTool } from './types/map'
+import { parseImportedMapJson } from './lib/mapSerialization'
+import { buildUnityExportV1 } from './lib/unityExportV1'
+import { useTileCatalog } from './hooks/useTileCatalog'
 
 type EditMode = 'world' | 'room'
 
 export default function App() {
+  const BUILD_ID = 'fix-undo-ui-20260202'
   const [paramPanelOpen, setParamPanelOpen] = useState(true)
   const [zonePanelOpen, setZonePanelOpen] = useState(false)
-  const [language, setLanguage] = useState<Language>('ko') // Default to Korean
   const [editMode, setEditMode] = useState<EditMode>('world')
   const [editingRoom, setEditingRoom] = useState<Room | null>(null)
   const [currentTool, setCurrentTool] = useState<EditorTool>('select')
   
-  const t: Translations = translations[language]
+  // 언어 토글 제거: UI/타일명은 한국어 기준으로 고정
+  const t: Translations = translations.ko
+  const tileCatalog = useTileCatalog({ t })
   
   const {
     mapData,
@@ -38,9 +43,11 @@ export default function App() {
     redo,
     fetchMap,
     fetchMapFromPrompt,
+    importMap,
     setSelectedRoom,
     setHoveredRoom,
     updateRoom,
+    updateRoomPositions,
     addRoom,
     deleteRoom,
     addConnection,
@@ -70,19 +77,26 @@ export default function App() {
   // 전역 키보드 단축키
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 입력 필드에서는 단축키 무시
       const target = e.target as HTMLElement
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
-        return
-      }
-
       // 상세맵 편집 모드에서는 다른 단축키 사용
       if (editMode === 'room') return
 
+      // 텍스트 입력 중에는 브라우저 기본 undo(입력 되돌리기)를 우선
+      const isTextEditing =
+        target.isContentEditable ||
+        target.tagName === 'TEXTAREA' ||
+        (target.tagName === 'INPUT' &&
+          ['text', 'search', 'email', 'password', 'url', 'tel'].includes(
+            ((target as HTMLInputElement).type || '').toLowerCase()
+          ))
+
       // Ctrl/Cmd + 키 조합
       if (e.ctrlKey || e.metaKey) {
-        switch (e.key.toLowerCase()) {
-          case 'z':
+        // NOTE: e.key는 키보드 레이아웃/IME(한글 입력) 영향으로 'ㅋ'처럼 들어올 수 있어
+        // 단축키는 물리 키 기준(e.code: KeyZ/KeyY/KeyC...)으로 처리한다.
+        switch (e.code) {
+          case 'KeyZ':
+            if (isTextEditing) return
             e.preventDefault()
             if (e.shiftKey) {
               redo()
@@ -90,23 +104,32 @@ export default function App() {
               undo()
             }
             break
-          case 'y':
+          case 'KeyY':
+            if (isTextEditing) return
             e.preventDefault()
             redo()
             break
-          case 'c':
+          case 'KeyC':
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
             e.preventDefault()
             copySelectedRooms()
             break
-          case 'v':
+          case 'KeyV':
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
             e.preventDefault()
             pasteRooms()
             break
-          case 'a':
+          case 'KeyA':
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
             e.preventDefault()
             selectAllRooms()
             break
         }
+        return
+      }
+
+      // 입력/선택 UI 포커스 중엔 나머지 단축키(도구 변경 등) 무시
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
         return
       }
 
@@ -160,6 +183,7 @@ export default function App() {
     const exportData = {
       ...mapData,
       connections,
+      tileCatalog: tileCatalog.state,
       exportedAt: new Date().toISOString()
     }
 
@@ -172,6 +196,27 @@ export default function App() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+  }, [mapData, connections, tileCatalog.state])
+
+  // Handle export for Unity (v1)
+  const handleExportUnity = useCallback(() => {
+    if (!mapData) return
+
+    try {
+      const exportData = buildUnityExportV1(mapData, connections, { tilesEncoding: 'auto' })
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `mapmate-unity-v1-${Date.now()}.mapmate.unity.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      alert(`Unity 내보내기 실패: ${message}`)
+    }
   }, [mapData, connections])
 
   // Handle import
@@ -185,21 +230,18 @@ export default function App() {
 
       try {
         const text = await file.text()
-        const data = JSON.parse(text)
-        
-        // Validate basic structure
-        if (!data.rooms || !data.zones) {
-          throw new Error(t.invalidMapFormat)
+        const parsed = parseImportedMapJson(text)
+        if ((parsed as any).tileCatalog) {
+          tileCatalog.importTileCatalogState((parsed as any).tileCatalog)
         }
-
-        setMapData(data)
+        importMap({ mapData: parsed.mapData, connections: parsed.connections })
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Unknown error'
         alert(`${t.failedToImport}: ${message}`)
       }
     }
     input.click()
-  }, [setMapData, t])
+  }, [importMap, t, tileCatalog])
 
   // Enter room editor mode
   const enterRoomEditor = useCallback((roomId: number) => {
@@ -277,6 +319,7 @@ export default function App() {
           onBack={exitRoomEditor}
           onSave={handleSaveRoom}
           t={t}
+          tileCatalog={tileCatalog}
         />
       </div>
     )
@@ -334,12 +377,12 @@ export default function App() {
       <Toolbar
         onGenerate={handleGenerate}
         onExport={handleExport}
+        onExportUnity={handleExportUnity}
         onImport={handleImport}
         loading={loading}
         roomCount={mapData?.rooms.length || 0}
         t={t}
-        language={language}
-        onLanguageChange={setLanguage}
+        buildId={BUILD_ID}
         currentTool={currentTool}
         onToolChange={setCurrentTool}
         canUndo={canUndo}
@@ -409,6 +452,7 @@ export default function App() {
             onSetSelectedRooms={setSelectedRooms}
             onHoverRoom={setHoveredRoom}
             onUpdateRoom={updateRoom}
+            onUpdateRoomPositions={updateRoomPositions}
             onAddConnection={addConnection}
             onDeleteConnection={deleteConnection}
             onSelectConnection={setSelectedConnection}

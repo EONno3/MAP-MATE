@@ -1,6 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { MapData, Room, Connection, GateCondition, Zone } from '../types/map'
 import { useHistory } from './useHistory'
+import { applyConnectionsToRooms, normalizeConnections } from '../lib/mapConnections'
+import { syncRoomDetailToRoomSize } from '../lib/roomSizeSync'
+import { applyRoomPositionUpdates, type RoomPositionUpdate } from '../lib/roomPositionUpdates'
 
 // API URL: 환경변수가 없으면 현재 origin 사용 (Docker nginx 프록시용)
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -46,9 +49,11 @@ interface UseMapStateReturn {
   // Actions
   fetchMap: (params?: FetchMapParams) => Promise<void>
   fetchMapFromPrompt: (prompt: string) => Promise<void>
+  importMap: (data: { mapData: MapData; connections?: Connection[] }) => void
   setSelectedRoom: (id: number | null) => void
   setHoveredRoom: (id: number | null) => void
   updateRoom: (id: number, updates: Partial<Room>, recordHistory?: boolean) => void
+  updateRoomPositions: (updates: RoomPositionUpdate[], recordHistory?: boolean) => void
   addRoom: (room: Room) => void
   deleteRoom: (id: number) => void
   addConnection: (fromId: number, toId: number, condition?: GateCondition) => void
@@ -87,7 +92,10 @@ export function useMapState(): UseMapStateReturn {
     redo,
     canUndo,
     canRedo,
-    clear: clearHistory
+    commit: commitHistoryCheckpoint,
+    clear: clearHistory,
+    reset: resetHistory,
+    history
   } = useHistory<MapHistoryState>({ mapData: null, connections: [] })
 
   const [loading, setLoading] = useState(false)
@@ -115,9 +123,14 @@ export function useMapState(): UseMapStateReturn {
 
   // Build connections from room data
   const buildConnections = useCallback((data: MapData): Connection[] => {
+    // 1) 서버가 connections를 주는 경우(조건 포함) 우선 사용
+    if (Array.isArray((data as any).connections)) {
+      return normalizeConnections((data as any).connections as Connection[])
+    }
+    // 2) 구 버전/폴백: neighbors 기반으로 생성
     const newConnections: Connection[] = []
     const processedPairs = new Set<string>()
-    
+
     data.rooms.forEach((room: Room) => {
       room.neighbors?.forEach((neighborId: number) => {
         const pairKey = [room.id, neighborId].sort().join('-')
@@ -126,14 +139,28 @@ export function useMapState(): UseMapStateReturn {
           newConnections.push({
             fromId: room.id,
             toId: neighborId,
-            condition: 'none'
+            condition: 'none',
           })
         }
       })
     })
-    
-    return newConnections
+
+    return normalizeConnections(newConnections)
   }, [])
+
+  // Import map (JSON import 등) - connections를 단일 소스로 보고 rooms.neighbors를 동기화
+  const importMap = useCallback((data: { mapData: MapData; connections?: Connection[] }) => {
+    const connections = normalizeConnections(data.connections ?? (data.mapData.connections ?? []))
+    const nextMapData = applyConnectionsToRooms(data.mapData, connections)
+
+    // IMPORTANT: 초기 로드/임포트는 checkpoint 없이 baseline으로 설정해야
+    // 첫 Undo가 "빈 맵"으로 되돌아가며 UI가 망가지는 현상을 막을 수 있다.
+    resetHistory({ mapData: nextMapData, connections })
+    setSelectedRoomId(null)
+    setSelectedRoomIds([])
+    setSelectedConnectionState(null)
+    setMapVersion((v) => v + 1)
+  }, [resetHistory])
 
   // Fetch map from API
   const fetchMap = useCallback(async (params?: FetchMapParams) => {
@@ -168,10 +195,10 @@ export function useMapState(): UseMapStateReturn {
       
       const data = await response.json()
       const newConnections = buildConnections(data)
+      const nextMapData = applyConnectionsToRooms(data, newConnections)
       
       // 새 맵 로드시 히스토리 초기화하고 새 상태 설정
-      clearHistory()
-      setHistoryState({ mapData: data, connections: newConnections }, false)
+      resetHistory({ mapData: nextMapData, connections: newConnections })
       setSelectedRoomId(null)
       setSelectedRoomIds([])
       setMapVersion(v => v + 1)  // fitToView 트리거
@@ -182,7 +209,7 @@ export function useMapState(): UseMapStateReturn {
     } finally {
       setLoading(false)
     }
-  }, [buildConnections, clearHistory, setHistoryState])
+  }, [buildConnections, resetHistory])
 
   // Fetch map from AI prompt
   const fetchMapFromPrompt = useCallback(async (prompt: string) => {
@@ -202,9 +229,9 @@ export function useMapState(): UseMapStateReturn {
       
       const data = await response.json()
       const newConnections = buildConnections(data)
+      const nextMapData = applyConnectionsToRooms(data, newConnections)
       
-      clearHistory()
-      setHistoryState({ mapData: data, connections: newConnections }, false)
+      resetHistory({ mapData: nextMapData, connections: newConnections })
       setSelectedRoomId(null)
       setSelectedRoomIds([])
       setMapVersion(v => v + 1)  // fitToView 트리거
@@ -215,12 +242,53 @@ export function useMapState(): UseMapStateReturn {
     } finally {
       setLoading(false)
     }
-  }, [buildConnections, clearHistory, setHistoryState])
+  }, [buildConnections, resetHistory])
+
+  // Undo/Redo로 맵 상태가 바뀌면 선택 상태가 존재하지 않는 ID를 가리킬 수 있어
+  // UI가 꼬이거나 이벤트가 먹통처럼 보이는 걸 방지하기 위해 항상 정합성 유지.
+  useEffect(() => {
+    if (!mapData) {
+      if (selectedRoomId !== null) setSelectedRoomId(null)
+      if (selectedRoomIds.length) setSelectedRoomIds([])
+      if (selectedConnection) setSelectedConnectionState(null)
+      return
+    }
+
+    const idSet = new Set(mapData.rooms.map((r) => r.id))
+
+    if (selectedRoomId !== null && !idSet.has(selectedRoomId)) {
+      setSelectedRoomId(null)
+    }
+
+    if (selectedRoomIds.length) {
+      const filtered = selectedRoomIds.filter((id) => idSet.has(id))
+      if (filtered.length !== selectedRoomIds.length) setSelectedRoomIds(filtered)
+    }
+
+    if (selectedConnection) {
+      const exists = connections.some(
+        (c) =>
+          (c.fromId === selectedConnection.fromId && c.toId === selectedConnection.toId) ||
+          (c.fromId === selectedConnection.toId && c.toId === selectedConnection.fromId)
+      )
+      if (!exists) setSelectedConnectionState(null)
+    }
+  }, [mapData, connections, selectedRoomId, selectedRoomIds, selectedConnection])
 
   // Select a room
+  const commitPendingHistory = useCallback(() => {
+    // If recordHistory=false created a checkpoint (e.g., typing in inputs),
+    // commit it as a single undo step even if the input unmounts before onBlur.
+    commitHistoryCheckpoint()
+  }, [commitHistoryCheckpoint])
+
   const setSelectedRoom = useCallback((id: number | null) => {
+    // If a user was editing a field (recordHistory=false) and then changes selection,
+    // the input can unmount before onBlur commits the checkpoint. Commit here to avoid
+    // "Undo does nothing / weird partial undo" behaviors.
+    commitPendingHistory()
     setSelectedRoomId(id)
-  }, [])
+  }, [commitPendingHistory])
 
   // Hover a room
   const setHoveredRoom = useCallback((id: number | null) => {
@@ -234,12 +302,34 @@ export function useMapState(): UseMapStateReturn {
     const newMapData = {
       ...mapData,
       rooms: mapData.rooms.map(room => 
-        room.id === id ? { ...room, ...updates } : room
+        room.id === id ? syncRoomDetailToRoomSize({ ...room, ...updates }) : room
       )
     }
-    
-    setHistoryState({ mapData: newMapData, connections }, recordHistory)
+
+    // connections 기반으로 neighbors를 다시 동기화(연결 표시/저장 일관성)
+    const syncedMapData = applyConnectionsToRooms(newMapData, connections)
+    setHistoryState({ mapData: syncedMapData, connections }, recordHistory)
   }, [mapData, connections, setHistoryState])
+
+  // Update multiple rooms positions in a single history step (drag-safe)
+  const updateRoomPositions = useCallback((updates: RoomPositionUpdate[], recordHistory: boolean = true) => {
+    if (!mapData) return
+    if (updates.length === 0) return
+
+    const moved = applyRoomPositionUpdates(mapData, updates)
+    // 드래그 종료 시점(recordHistory=true)에는 moved가 현재 mapData와 같아도
+    // useHistory의 checkpoint를 past로 커밋해야 Undo가 동작한다.
+    if (moved === mapData) {
+      if (recordHistory && history.checkpoint !== null) {
+        const syncedMapData = applyConnectionsToRooms(mapData, connections)
+        setHistoryState({ mapData: syncedMapData, connections }, true)
+      }
+      return
+    }
+
+    const syncedMapData = applyConnectionsToRooms(moved, connections)
+    setHistoryState({ mapData: syncedMapData, connections }, recordHistory)
+  }, [mapData, connections, history.checkpoint, setHistoryState])
 
   // Add a new room
   const addRoom = useCallback((room: Room) => {
@@ -249,8 +339,9 @@ export function useMapState(): UseMapStateReturn {
       ...mapData,
       rooms: [...mapData.rooms, room]
     }
-    
-    setHistoryState({ mapData: newMapData, connections })
+
+    const syncedMapData = applyConnectionsToRooms(newMapData, connections)
+    setHistoryState({ mapData: syncedMapData, connections })
   }, [mapData, connections, setHistoryState])
 
   // Delete a room
@@ -262,11 +353,12 @@ export function useMapState(): UseMapStateReturn {
       rooms: mapData.rooms.filter(room => room.id !== id)
     }
     
-    const newConnections = connections.filter(
+    const newConnections = normalizeConnections(connections.filter(
       conn => conn.fromId !== id && conn.toId !== id
-    )
-    
-    setHistoryState({ mapData: newMapData, connections: newConnections })
+    ))
+
+    const syncedMapData = applyConnectionsToRooms(newMapData, newConnections)
+    setHistoryState({ mapData: syncedMapData, connections: newConnections })
     
     if (selectedRoomId === id) {
       setSelectedRoomId(null)
@@ -283,17 +375,19 @@ export function useMapState(): UseMapStateReturn {
     
     if (exists) return
     
-    const newConnections = [...connections, { fromId, toId, condition }]
-    setHistoryState({ mapData, connections: newConnections })
+    const newConnections = normalizeConnections([...connections, { fromId, toId, condition }])
+    const syncedMapData = mapData ? applyConnectionsToRooms(mapData, newConnections) : mapData
+    setHistoryState({ mapData: syncedMapData, connections: newConnections })
   }, [mapData, connections, setHistoryState])
 
   // Delete a connection
   const deleteConnection = useCallback((fromId: number, toId: number) => {
-    const newConnections = connections.filter(
+    const newConnections = normalizeConnections(connections.filter(
       conn => !((conn.fromId === fromId && conn.toId === toId) ||
                 (conn.fromId === toId && conn.toId === fromId))
-    )
-    setHistoryState({ mapData, connections: newConnections })
+    ))
+    const syncedMapData = mapData ? applyConnectionsToRooms(mapData, newConnections) : mapData
+    setHistoryState({ mapData: syncedMapData, connections: newConnections })
     // 삭제된 연결이 선택된 상태였다면 선택 해제
     if (selectedConnection && 
         ((selectedConnection.fromId === fromId && selectedConnection.toId === toId) ||
@@ -304,14 +398,15 @@ export function useMapState(): UseMapStateReturn {
 
   // Update a connection's condition
   const updateConnection = useCallback((fromId: number, toId: number, condition: GateCondition) => {
-    const newConnections = connections.map(conn => {
+    const newConnections = normalizeConnections(connections.map(conn => {
       if ((conn.fromId === fromId && conn.toId === toId) ||
           (conn.fromId === toId && conn.toId === fromId)) {
         return { ...conn, condition }
       }
       return conn
-    })
-    setHistoryState({ mapData, connections: newConnections })
+    }))
+    const syncedMapData = mapData ? applyConnectionsToRooms(mapData, newConnections) : mapData
+    setHistoryState({ mapData: syncedMapData, connections: newConnections })
   }, [mapData, connections, setHistoryState])
 
   // Set selected connection
@@ -483,15 +578,17 @@ export function useMapState(): UseMapStateReturn {
 
   // 선택된 방들 설정
   const setSelectedRooms = useCallback((ids: number[]) => {
+    commitPendingHistory()
     setSelectedRoomIds(ids)
-  }, [])
+  }, [commitPendingHistory])
 
   // 모든 선택 해제
   const clearSelection = useCallback(() => {
+    commitPendingHistory()
     setSelectedRoomId(null)
     setSelectedRoomIds([])
     setSelectedConnectionState(null)
-  }, [])
+  }, [commitPendingHistory])
 
   // 모든 방 선택 (Ctrl+A)
   const selectAllRooms = useCallback(() => {
@@ -514,11 +611,12 @@ export function useMapState(): UseMapStateReturn {
     const newMapData = {
       ...mapData,
       rooms: mapData.rooms.map(room => 
-        targetIds.includes(room.id) ? { ...room, ...updates } : room
+        targetIds.includes(room.id) ? syncRoomDetailToRoomSize({ ...room, ...updates }) : room
       )
     }
     
-    setHistoryState({ mapData: newMapData, connections })
+    const syncedMapData = applyConnectionsToRooms(newMapData, connections)
+    setHistoryState({ mapData: syncedMapData, connections })
   }, [mapData, connections, selectedRoomIds, selectedRoomId, setHistoryState])
 
   // 선택된 방들 일괄 삭제
@@ -614,9 +712,11 @@ export function useMapState(): UseMapStateReturn {
     redo,
     fetchMap,
     fetchMapFromPrompt,
+    importMap,
     setSelectedRoom,
     setHoveredRoom,
     updateRoom,
+    updateRoomPositions,
     addRoom,
     deleteRoom,
     addConnection,

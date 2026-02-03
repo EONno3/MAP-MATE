@@ -9,6 +9,7 @@ export interface Translations {
   // Toolbar
   generate: string
   exportJson: string
+  exportUnity: string
   importJson: string
   rooms: string
   undo: string
@@ -169,6 +170,7 @@ export const translations: Record<Language, Translations> = {
     // Toolbar
     generate: '생성',
     exportJson: 'JSON 내보내기',
+    exportUnity: 'Unity 내보내기',
     importJson: 'JSON 가져오기',
     rooms: '방',
     undo: '실행취소',
@@ -328,6 +330,7 @@ export const translations: Record<Language, Translations> = {
     // Toolbar
     generate: 'Generate',
     exportJson: 'Export JSON',
+    exportUnity: 'Export for Unity',
     importJson: 'Import JSON',
     rooms: 'Rooms',
     undo: 'Undo',

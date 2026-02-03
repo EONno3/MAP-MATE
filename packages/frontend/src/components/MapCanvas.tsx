@@ -24,6 +24,7 @@ interface MapCanvasProps {
   onSetSelectedRooms: (ids: number[]) => void  // 선택 일괄 설정
   onHoverRoom: (id: number | null) => void
   onUpdateRoom?: (id: number, updates: Partial<Room>, recordHistory?: boolean) => void
+  onUpdateRoomPositions?: (updates: Array<{ id: number; x: number; y: number }>, recordHistory?: boolean) => void
   onAddConnection?: (fromId: number, toId: number) => void
   onDeleteConnection?: (fromId: number, toId: number) => void
   onSelectConnection?: (conn: SelectedConnection | null) => void
@@ -47,6 +48,7 @@ export function MapCanvas({
   onSetSelectedRooms,
   onHoverRoom,
   onUpdateRoom,
+  onUpdateRoomPositions,
   onAddConnection,
   onDeleteConnection,
   onSelectConnection,
@@ -62,10 +64,18 @@ export function MapCanvas({
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
   
+  // Box selection state (drag-to-select)
+  const [isBoxSelecting, setIsBoxSelecting] = useState(false)
+  const [boxStartCell, setBoxStartCell] = useState<Point | null>(null)
+  const [boxCurrentCell, setBoxCurrentCell] = useState<Point | null>(null)
+  const boxAdditiveRef = useRef(false)
+  const didBoxSelectRef = useRef(false)
+  
   // Drag state (moving room)
   const [isDragging, setIsDragging] = useState(false)
   const [dragStartPos, setDragStartPos] = useState<Point | null>(null)
-  const [dragRoomOriginalPos, setDragRoomOriginalPos] = useState<{ x: number; y: number } | null>(null)
+  const [dragRoomOriginalPos, setDragRoomOriginalPos] = useState<{ x: number; y: number } | null>(null) // legacy: 단일
+  const [dragOriginalPositions, setDragOriginalPositions] = useState<Array<{ id: number; x: number; y: number }> | null>(null) // 다중/단일 공용
   
   // Connection creation state
   const [connectingFromId, setConnectingFromId] = useState<number | null>(null)
@@ -392,6 +402,28 @@ export function MapCanvas({
       ctx.fillText(`${sizeW} × ${sizeH}`, labelX, labelY)
     }
 
+    // Draw box selection preview (select tool drag)
+    if (isBoxSelecting && boxStartCell && boxCurrentCell) {
+      const minX = Math.min(boxStartCell.x, boxCurrentCell.x)
+      const minY = Math.min(boxStartCell.y, boxCurrentCell.y)
+      const maxX = Math.max(boxStartCell.x, boxCurrentCell.x)
+      const maxY = Math.max(boxStartCell.y, boxCurrentCell.y)
+
+      const previewX = minX * CELL_SIZE
+      const previewY = minY * CELL_SIZE
+      const previewW = (maxX - minX + 1) * CELL_SIZE
+      const previewH = (maxY - minY + 1) * CELL_SIZE
+
+      ctx.fillStyle = 'rgba(0, 255, 255, 0.10)'
+      ctx.fillRect(previewX, previewY, previewW, previewH)
+
+      ctx.strokeStyle = '#00ffff'
+      ctx.lineWidth = 2 / transform.scale
+      ctx.setLineDash([6 / transform.scale, 3 / transform.scale])
+      ctx.strokeRect(previewX, previewY, previewW, previewH)
+      ctx.setLineDash([])
+    }
+
     ctx.restore()
 
     // Draw zoom level and tool indicator
@@ -408,7 +440,7 @@ export function MapCanvas({
       ctx.fillText(t.clickToConnect, canvas.width - 10, canvas.height - 26)
     }
 
-  }, [mapData, connections, selectedRoomId, selectedRoomIds, hoveredRoomId, selectedConnection, transform, isDragging, connectingFromId, mousePos, screenToWorld, isDrawing, drawStartCell, drawCurrentCell, t])
+  }, [mapData, connections, selectedRoomId, selectedRoomIds, hoveredRoomId, selectedConnection, transform, isDragging, connectingFromId, mousePos, screenToWorld, isDrawing, drawStartCell, drawCurrentCell, isBoxSelecting, boxStartCell, boxCurrentCell, t])
 
   // Handle mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -420,6 +452,15 @@ export function MapCanvas({
     setMousePos({ x, y })
     setTooltipPos({ x: e.clientX, y: e.clientY })
 
+    // Handle box selection (drag-to-select)
+    if (isBoxSelecting && boxStartCell) {
+      const worldPos = screenToWorld(x, y)
+      const cellX = Math.floor(worldPos.x / CELL_SIZE)
+      const cellY = Math.floor(worldPos.y / CELL_SIZE)
+      setBoxCurrentCell({ x: cellX, y: cellY })
+      return
+    }
+
     // Handle drawing room
     if (isDrawing && drawStartCell) {
       const worldPos = screenToWorld(x, y)
@@ -429,32 +470,41 @@ export function MapCanvas({
       return
     }
 
-    // Handle dragging room
-    if (isDragging && selectedRoomId !== null && dragStartPos && dragRoomOriginalPos && onUpdateRoom) {
+    // Handle dragging room (single or multi)
+    if (isDragging && dragStartPos && dragOriginalPositions && (onUpdateRoomPositions || onUpdateRoom)) {
       const currentWorld = screenToWorld(x, y)
       const startWorld = screenToWorld(dragStartPos.x, dragStartPos.y)
       
       const dx = Math.round((currentWorld.x - startWorld.x) / CELL_SIZE)
       const dy = Math.round((currentWorld.y - startWorld.y) / CELL_SIZE)
-      
-      const newX = dragRoomOriginalPos.x + dx
-      const newY = dragRoomOriginalPos.y + dy
-      
-      onUpdateRoom(selectedRoomId, { x: newX, y: newY }, false) // Don't record history while dragging
+
+      const updates = dragOriginalPositions.map((p) => ({ id: p.id, x: p.x + dx, y: p.y + dy }))
+
+      // Prefer bulk update to keep history checkpoint correct
+      if (onUpdateRoomPositions) {
+        onUpdateRoomPositions(updates, false)
+      } else if (onUpdateRoom && updates.length === 1) {
+        onUpdateRoom(updates[0].id, { x: updates[0].x, y: updates[0].y }, false)
+      }
     }
     
     // Handle panning
     updatePan(e)
 
     // Update hovered room (not while dragging/drawing)
-    if (!isDragging && !isDrawing) {
+    if (!isDragging && !isDrawing && !isBoxSelecting) {
       const room = getRoomAtPosition(x, y)
       onHoverRoom(room?.id || null)
     }
-  }, [isDragging, isDrawing, drawStartCell, selectedRoomId, dragStartPos, dragRoomOriginalPos, onUpdateRoom, updatePan, getRoomAtPosition, onHoverRoom, screenToWorld])
+  }, [isBoxSelecting, boxStartCell, isDragging, isDrawing, drawStartCell, dragStartPos, dragRoomOriginalPos, dragOriginalPositions, onUpdateRoomPositions, onUpdateRoom, updatePan, getRoomAtPosition, onHoverRoom, screenToWorld])
 
   // Handle click
   const handleClick = useCallback((e: React.MouseEvent) => {
+    // 박스 선택 드래그 후 발생하는 click 이벤트 무시
+    if (didBoxSelectRef.current) {
+      didBoxSelectRef.current = false
+      return
+    }
     if (isDragging) return // Don't click while dragging
     
     const rect = containerRef.current?.getBoundingClientRect()
@@ -527,6 +577,21 @@ export function MapCanvas({
       startPan(e)
       return
     }
+
+    // Select tool - start box selection on empty space
+    if (e.button === 0 && currentTool === 'select') {
+      const room = getRoomAtPosition(x, y)
+      if (!room) {
+        const worldPos = screenToWorld(x, y)
+        const cellX = Math.floor(worldPos.x / CELL_SIZE)
+        const cellY = Math.floor(worldPos.y / CELL_SIZE)
+        setIsBoxSelecting(true)
+        setBoxStartCell({ x: cellX, y: cellY })
+        setBoxCurrentCell({ x: cellX, y: cellY })
+        boxAdditiveRef.current = !!(e.ctrlKey || e.metaKey)
+        return
+      }
+    }
     
     // Draw mode - start drawing room
     if (e.button === 0 && currentTool === 'draw') {
@@ -542,19 +607,75 @@ export function MapCanvas({
       return
     }
     
-    // Left click on selected room starts drag
+    // Left click on selected room(s) starts drag
     if (e.button === 0 && !e.ctrlKey && currentTool === 'select') {
       const room = getRoomAtPosition(x, y)
-      if (room && room.id === selectedRoomId) {
-        setIsDragging(true)
-        setDragStartPos({ x, y })
-        setDragRoomOriginalPos({ x: room.x, y: room.y })
+      if (room) {
+        const isInMulti = selectedRoomIds.includes(room.id)
+        const isSingleSelected = room.id === selectedRoomId
+        const shouldDrag = isInMulti || isSingleSelected
+
+        if (shouldDrag) {
+          setIsDragging(true)
+          setDragStartPos({ x, y })
+          setDragRoomOriginalPos({ x: room.x, y: room.y })
+
+          const ids = isInMulti ? selectedRoomIds : [room.id]
+          const originals = (mapData?.rooms ?? [])
+            .filter((r) => ids.includes(r.id))
+            .map((r) => ({ id: r.id, x: r.x, y: r.y }))
+          setDragOriginalPositions(originals)
+
+          // 단일 선택만 있는 상태면 기존 UX 유지(선택 확정)
+          if (!isInMulti && selectedRoomId !== room.id) onSelectRoom(room.id)
+        }
       }
     }
-  }, [startPan, getRoomAtPosition, selectedRoomId, currentTool, screenToWorld])
+  }, [startPan, getRoomAtPosition, selectedRoomId, selectedRoomIds, currentTool, screenToWorld, mapData, onSelectRoom])
 
   // Handle mouse up
   const handleMouseUp = useCallback(() => {
+    // Finish box selection
+    if (isBoxSelecting && boxStartCell && boxCurrentCell && mapData) {
+      const sameCell = boxStartCell.x === boxCurrentCell.x && boxStartCell.y === boxCurrentCell.y
+
+      if (!sameCell) {
+        const minX = Math.min(boxStartCell.x, boxCurrentCell.x)
+        const minY = Math.min(boxStartCell.y, boxCurrentCell.y)
+        const maxX = Math.max(boxStartCell.x, boxCurrentCell.x)
+        const maxY = Math.max(boxStartCell.y, boxCurrentCell.y)
+
+        const selectedIds: number[] = []
+
+        for (const room of mapData.rooms) {
+          const rects = room.rects?.length ? room.rects : [[0, 0, room.w, room.h]]
+          const intersects = rects.some(([rx, ry, rw, rh]) => {
+            const rMinX = room.x + rx
+            const rMinY = room.y + ry
+            const rMaxX = rMinX + rw - 1
+            const rMaxY = rMinY + rh - 1
+            return !(rMaxX < minX || rMinX > maxX || rMaxY < minY || rMinY > maxY)
+          })
+          if (intersects) selectedIds.push(room.id)
+        }
+
+        const nextIds = boxAdditiveRef.current
+          ? Array.from(new Set([...selectedRoomIds, ...selectedIds]))
+          : selectedIds
+
+        onSelectRoom(null)
+        onSetSelectedRooms(nextIds)
+        if (onSelectConnection) onSelectConnection(null)
+        didBoxSelectRef.current = true
+      }
+
+      setIsBoxSelecting(false)
+      setBoxStartCell(null)
+      setBoxCurrentCell(null)
+      boxAdditiveRef.current = false
+      return
+    }
+
     // Finish drawing - create new room
     if (isDrawing && drawStartCell && drawCurrentCell && onAddRoom && mapData) {
       const minX = Math.min(drawStartCell.x, drawCurrentCell.x)
@@ -590,36 +711,55 @@ export function MapCanvas({
       return
     }
     
-    // Finish dragging room - record history
-    if (isDragging && selectedRoomId !== null && onUpdateRoom) {
-      // Record the final position in history
-      const room = mapData?.rooms.find(r => r.id === selectedRoomId)
-      if (room) {
-        onUpdateRoom(selectedRoomId, { x: room.x, y: room.y }, true)
+    // Finish dragging room(s) - record history
+    if (isDragging && dragOriginalPositions && mapData && (onUpdateRoomPositions || onUpdateRoom)) {
+      const finalUpdates = dragOriginalPositions
+        .map((p) => {
+          const r = mapData.rooms.find((rr) => rr.id === p.id)
+          return r ? { id: r.id, x: r.x, y: r.y } : null
+        })
+        .filter(Boolean) as Array<{ id: number; x: number; y: number }>
+
+      if (onUpdateRoomPositions) {
+        onUpdateRoomPositions(finalUpdates, true)
+      } else if (onUpdateRoom && finalUpdates.length === 1) {
+        onUpdateRoom(finalUpdates[0].id, { x: finalUpdates[0].x, y: finalUpdates[0].y }, true)
       }
+
       setIsDragging(false)
       setDragStartPos(null)
       setDragRoomOriginalPos(null)
+      setDragOriginalPositions(null)
     }
     
     endPan()
-  }, [isDrawing, isDragging, drawStartCell, drawCurrentCell, selectedRoomId, onAddRoom, onUpdateRoom, onSelectRoom, mapData, endPan])
+  }, [isBoxSelecting, boxStartCell, boxCurrentCell, mapData, selectedRoomIds, onSelectRoom, onSetSelectedRooms, onSelectConnection, isDrawing, isDragging, drawStartCell, drawCurrentCell, selectedRoomId, onAddRoom, onUpdateRoom, onUpdateRoomPositions, dragOriginalPositions, endPan])
+
+  // IMPORTANT: 캔버스 밖에서 mouseup이 발생하면 onMouseUp이 호출되지 않아
+  // 드래그/그리기/박스선택이 "종료 커밋"되지 않고 Undo 히스토리가 쌓이지 않는 문제가 생긴다.
+  // window 레벨에서 mouseup을 받아 종료 처리를 보장한다.
+  useEffect(() => {
+    const onWindowMouseUp = () => {
+      if (isDragging || isDrawing || isBoxSelecting) {
+        handleMouseUp()
+      }
+    }
+    window.addEventListener('mouseup', onWindowMouseUp)
+    return () => window.removeEventListener('mouseup', onWindowMouseUp)
+  }, [isDragging, isDrawing, isBoxSelecting, handleMouseUp])
 
   // Handle mouse leave
   const handleMouseLeave = useCallback(() => {
-    if (isDrawing) {
-      setIsDrawing(false)
-      setDrawStartCell(null)
-      setDrawCurrentCell(null)
-    }
-    if (isDragging) {
-      setIsDragging(false)
-      setDragStartPos(null)
-      setDragRoomOriginalPos(null)
+    // IMPORTANT: leaving the canvas while dragging/drawing/box-selecting can otherwise
+    // drop the "commit" step (and break Undo). Treat mouse-leave like mouse-up.
+    if (isBoxSelecting || isDrawing || isDragging) {
+      handleMouseUp()
+      onHoverRoom(null)
+      return
     }
     endPan()
     onHoverRoom(null)
-  }, [isDrawing, isDragging, endPan, onHoverRoom])
+  }, [isBoxSelecting, isDrawing, isDragging, handleMouseUp, endPan, onHoverRoom])
 
   // Handle double click (add new room)
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
@@ -749,7 +889,7 @@ export function MapCanvas({
   else if (isDrawing) cursor = 'crosshair'
   else if (currentTool === 'draw') cursor = 'crosshair'
   else if (connectingFromId !== null) cursor = 'pointer'
-  else if (hoveredRoomId === selectedRoomId && selectedRoomId !== null) cursor = 'grab'
+  else if (hoveredRoomId !== null && (hoveredRoomId === selectedRoomId || selectedRoomIds.includes(hoveredRoomId))) cursor = 'grab'
 
   return (
     <div
@@ -781,7 +921,7 @@ export function MapCanvas({
         room={hoveredRoom}
         zone={hoveredZone}
         position={tooltipPos}
-        visible={hoveredRoomId !== null && !isDragging}
+        visible={hoveredRoomId !== null && !isDragging && !isBoxSelecting}
         t={t}
       />
 

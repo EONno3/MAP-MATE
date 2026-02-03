@@ -16,6 +16,7 @@ interface RoomCanvasProps {
   toolMode: RoomToolMode
   onUpdateTiles: (tiles: TileType[][], recordHistory?: boolean) => void
   onUpdateObjects: (objects: RoomObject[], recordHistory?: boolean) => void
+  tileColors?: Record<string, string>
   t: Translations
 }
 
@@ -27,21 +28,25 @@ export function RoomCanvas({
   toolMode,
   onUpdateTiles,
   onUpdateObjects,
+  tileColors,
   t
 }: RoomCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isPainting, setIsPainting] = useState(false)
+  const isPaintingRef = useRef(false)
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null)
   const [selectedObjectInstance, setSelectedObjectInstance] = useState<string | null>(null)
   
   // Painting state - useRef를 사용하여 최신 값을 항상 참조
   const paintingTilesRef = useRef<TileType[][] | null>(null)
   const [isDraggingObject, setIsDraggingObject] = useState(false)
+  const isDraggingObjectRef = useRef(false)
   const [draggedObjectOrigPos, setDraggedObjectOrigPos] = useState<{ x: number; y: number } | null>(null)
   
   // Fill tool state - 드래그로 직사각형 영역 채우기 (ref로 관리하여 클로저 문제 방지)
   const [isFilling, setIsFilling] = useState(false)
+  const isFillingRef = useRef(false)
   const fillStartRef = useRef<{ x: number; y: number } | null>(null)
   const fillEndRef = useRef<{ x: number; y: number } | null>(null)
   const fillPreviewTilesRef = useRef<TileType[][] | null>(null)
@@ -279,7 +284,7 @@ export function RoomCanvas({
         const py = y * TILE_SIZE
 
         if (tile !== 'empty') {
-          ctx.fillStyle = TILE_COLORS[tile]
+          ctx.fillStyle = (tileColors?.[tile] ?? TILE_COLORS[tile]) as string
           ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE)
         }
 
@@ -416,7 +421,7 @@ export function RoomCanvas({
       ctx.fillText(`(${hoveredTile.x}, ${hoveredTile.y})`, canvas.width - 10, canvas.height - 26)
     }
 
-  }, [roomDetail, transform, hoveredTile, selectedObject, selectedObjectInstance, brushSize, toolMode, isFilling, fillPreviewBounds, t])
+  }, [roomDetail, transform, hoveredTile, selectedObject, selectedObjectInstance, brushSize, toolMode, isFilling, fillPreviewBounds, tileColors, t])
 
   // Handle mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -475,6 +480,7 @@ export function RoomCanvas({
           if (clickedObj && clickedObj.id === selectedObjectInstance) {
             // 선택된 오브젝트 클릭 -> 드래그 시작
             setIsDraggingObject(true)
+            isDraggingObjectRef.current = true
             setDraggedObjectOrigPos({ x: clickedObj.x, y: clickedObj.y })
           } else {
             // 다른 곳 클릭 -> 선택 해제
@@ -483,10 +489,12 @@ export function RoomCanvas({
         } else if (toolMode === 'fill') {
           // 채우기 모드 - 드래그로 직사각형 영역 채우기
           setIsFilling(true)
+          isFillingRef.current = true
           startFill(tile.x, tile.y)
         } else {
           // 브러시 모드 - 일반 타일 페인팅
           setIsPainting(true)
+          isPaintingRef.current = true
           startPainting()
           paintTile(tile.x, tile.y)
         }
@@ -496,36 +504,56 @@ export function RoomCanvas({
 
   // Handle mouse up
   const handleMouseUp = useCallback(() => {
-    if (isFilling) {
+    if (isFillingRef.current) {
       endFill() // 채우기 종료 -> 히스토리에 기록
       setIsFilling(false)
+      isFillingRef.current = false
     }
-    if (isPainting) {
+    if (isPaintingRef.current) {
       endPainting() // 브러시 스트로크 종료 -> 히스토리에 기록
       setIsPainting(false)
+      isPaintingRef.current = false
     }
-    if (isDraggingObject) {
+    if (isDraggingObjectRef.current) {
       endObjectDrag() // 오브젝트 드래그 종료 -> 히스토리에 기록
+      isDraggingObjectRef.current = false
+      setIsDraggingObject(false)
     }
     endPan()
-  }, [isPainting, isFilling, isDraggingObject, endPainting, endFill, endObjectDrag, endPan])
+  }, [endPainting, endFill, endObjectDrag, endPan])
 
   // Handle mouse leave
   const handleMouseLeave = useCallback(() => {
-    if (isFilling) {
+    if (isFillingRef.current) {
       endFill()
       setIsFilling(false)
+      isFillingRef.current = false
     }
-    if (isPainting) {
+    if (isPaintingRef.current) {
       endPainting()
       setIsPainting(false)
+      isPaintingRef.current = false
     }
-    if (isDraggingObject) {
+    if (isDraggingObjectRef.current) {
       endObjectDrag()
+      isDraggingObjectRef.current = false
+      setIsDraggingObject(false)
     }
     setHoveredTile(null)
     endPan()
-  }, [isPainting, isFilling, isDraggingObject, endPainting, endFill, endObjectDrag, endPan])
+  }, [endPainting, endFill, endObjectDrag, endPan])
+
+  // IMPORTANT: 캔버스 밖에서 mouseup이 발생하면 onMouseUp이 호출되지 않아
+  // 스트로크가 커밋되지 않고 Undo가 영원히 비활성일 수 있다.
+  useEffect(() => {
+    const onWindowMouseUp = () => {
+      if (isPaintingRef.current || isFillingRef.current || isDraggingObjectRef.current) {
+        handleMouseUp()
+      }
+    }
+    window.addEventListener('mouseup', onWindowMouseUp)
+    return () => window.removeEventListener('mouseup', onWindowMouseUp)
+  }, [handleMouseUp])
 
   // Handle key press
   useEffect(() => {

@@ -653,7 +653,13 @@ export function Sidebar({
             <input
               type="number"
               value={selectedRoom.x}
-              onChange={(e) => onUpdateRoom(selectedRoom.id, { x: parseInt(e.target.value) || 0 })}
+              onChange={(e) => onUpdateRoom(selectedRoom.id, { x: parseInt(e.target.value) || 0 }, false)}
+              onBlur={(e) => onUpdateRoom(selectedRoom.id, { x: parseInt(e.target.value) || 0 }, true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  ;(e.currentTarget as HTMLInputElement).blur()
+                }
+              }}
               style={{
                 width: '100%',
                 padding: '12px 14px',
@@ -671,7 +677,13 @@ export function Sidebar({
             <input
               type="number"
               value={selectedRoom.y}
-              onChange={(e) => onUpdateRoom(selectedRoom.id, { y: parseInt(e.target.value) || 0 })}
+              onChange={(e) => onUpdateRoom(selectedRoom.id, { y: parseInt(e.target.value) || 0 }, false)}
+              onBlur={(e) => onUpdateRoom(selectedRoom.id, { y: parseInt(e.target.value) || 0 }, true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  ;(e.currentTarget as HTMLInputElement).blur()
+                }
+              }}
               style={{
                 width: '100%',
                 padding: '12px 14px',
@@ -710,7 +722,20 @@ export function Sidebar({
                   selectedRoom.rects?.length === 1 
                     ? [[0, 0, newW, selectedRoom.h]]
                     : selectedRoom.rects || [[0, 0, newW, selectedRoom.h]]
-                onUpdateRoom(selectedRoom.id, { w: newW, rects: newRects })
+                onUpdateRoom(selectedRoom.id, { w: newW, rects: newRects }, false)
+              }}
+              onBlur={(e) => {
+                const newW = parseInt(e.target.value) || 1
+                const newRects: [number, number, number, number][] =
+                  selectedRoom.rects?.length === 1
+                    ? [[0, 0, newW, selectedRoom.h]]
+                    : selectedRoom.rects || [[0, 0, newW, selectedRoom.h]]
+                onUpdateRoom(selectedRoom.id, { w: newW, rects: newRects }, true)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  ;(e.currentTarget as HTMLInputElement).blur()
+                }
               }}
               min={1}
               style={{
@@ -737,7 +762,20 @@ export function Sidebar({
                   selectedRoom.rects?.length === 1 
                     ? [[0, 0, selectedRoom.w, newH]]
                     : selectedRoom.rects || [[0, 0, selectedRoom.w, newH]]
-                onUpdateRoom(selectedRoom.id, { h: newH, rects: newRects })
+                onUpdateRoom(selectedRoom.id, { h: newH, rects: newRects }, false)
+              }}
+              onBlur={(e) => {
+                const newH = parseInt(e.target.value) || 1
+                const newRects: [number, number, number, number][] =
+                  selectedRoom.rects?.length === 1
+                    ? [[0, 0, selectedRoom.w, newH]]
+                    : selectedRoom.rects || [[0, 0, selectedRoom.w, newH]]
+                onUpdateRoom(selectedRoom.id, { h: newH, rects: newRects }, true)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  ;(e.currentTarget as HTMLInputElement).blur()
+                }
               }}
               min={1}
               style={{
