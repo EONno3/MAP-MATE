@@ -1,0 +1,298 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    /* Design System Variables - Cool Toned Dark Theme */
+    --bg-base: #0d1117;
+    /* Very dark blue/grey for the main canvas background */
+    --bg-panel: #161b22;
+    /* Slightly lighter for panels */
+    --bg-panel-hover: #21262d;
+    /* Hover state for panels/buttons */
+    --bg-panel-active: #30363d;
+    /* Active state for panels/buttons */
+
+    --accent-blue: #38bdf8;
+    /* Primary accent - vibrant cool blue */
+    --accent-blue-hover: #0284c7;
+    --accent-indigo: #818cf8;
+    /* Secondary accent - sleek indigo */
+    --accent-indigo-hover: #4f46e5;
+    --accent-green: #34d399;
+    /* Tertiary accent - success/generate */
+    --accent-red: #f87171;
+    /* Danger/Delete */
+
+    --text-main: #f8fafc;
+    /* Main text - crisp white-blue */
+    --text-muted: #94a3b8;
+    /* Muted text for labels */
+    --text-disabled: #64748b;
+
+    --border-light: #30363d;
+    /* Subtle borders for panels */
+    --border-focus: #38bdf8;
+    /* Border color when focused/selected */
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 10px rgba(56, 189, 248, 0.4);
+    /* Blue glow for active states */
+
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+
+    /* Z-indices */
+    --z-canvas: 10;
+    --z-panel: 50;
+    --z-tooltip: 100;
+    --z-modal: 200;
+    --z-overlay: 1000;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-base);
+    color: var(--text-main);
+    overflow: hidden;
+    /* Prevent body scroll in the app */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: var(--border-radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Base Utility Classes */
+.panel-base {
+    background: rgba(22, 27, 34, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-md);
+    border-radius: var(--border-radius-md);
+}
+
+.btn-base {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-base:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-icon {
+    padding: 6px;
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.btn-icon:hover:not(:disabled) {
+    background: var(--bg-panel-hover);
+    color: var(--text-main);
+    transform: translateY(-1px);
+}
+
+.btn-icon.active {
+    background: var(--bg-panel-active);
+    color: var(--accent-blue);
+    box-shadow: inset 0 0 0 1px var(--border-focus);
+}
+
+.btn-primary {
+    background: var(--accent-blue);
+    color: #000;
+    font-weight: 600;
+    padding: 8px 16px;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--accent-blue-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-glow);
+}
+
+.btn-secondary {
+    background: var(--bg-panel-hover);
+    color: var(--text-main);
+    border: 1px solid var(--border-light);
+    padding: 8px 16px;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--bg-panel-active);
+    border-color: var(--text-muted);
+}
+
+.btn-danger {
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--accent-red);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: rgba(248, 113, 113, 0.2);
+    border-color: var(--accent-red);
+}
+
+/* Input Fields */
+.input-base {
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
+    color: var(--text-main);
+    padding: 6px 10px;
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: 13px;
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+.input-base:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+/* Micro-animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-left {
+    animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Range Input Styling */
+input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    cursor: pointer;
+    margin-top: -6px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.1s;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: var(--border-light);
+    border-radius: 2px;
+}

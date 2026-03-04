@@ -1,6 +1,7 @@
 import React from 'react'
 import { Room, Zone, RoomType, ROOM_TYPE_ICONS, Connection, GateCondition, GATE_COLORS } from '../types/map'
 import { Translations, getRoomTypeName } from '../i18n/translations'
+import { MousePointerClick, Link as LinkIcon, Box, Copy, ClipboardPaste, Trash2, Scissors, Image as ImageIcon, Lightbulb, MapPin } from 'lucide-react'
 
 // 선택된 연결선 타입
 interface SelectedConnection {
@@ -32,25 +33,25 @@ interface SidebarProps {
 
 // Gate condition 목록
 const GATE_CONDITIONS: GateCondition[] = [
-  'none', 'dash', 'wall_jump', 'double_jump', 'super_dash', 
-  'swim', 'lantern', 'desolate_dive', 'simple_key', 'city_crest', 
+  'none', 'dash', 'wall_jump', 'double_jump', 'super_dash',
+  'swim', 'lantern', 'desolate_dive', 'simple_key', 'city_crest',
   'tram_pass', 'event_lock'
 ]
 
 const ROOM_TYPES: RoomType[] = ['normal', 'boss', 'save', 'stag', 'map', 'item', 'hub', 'start', 'shop']
 
-export function Sidebar({ 
-  selectedRoom, 
+export function Sidebar({
+  selectedRoom,
   selectedRoomIds,
-  zone, 
-  zones, 
+  zone,
+  zones,
   selectedConnection,
   connections,
   rooms,
   clipboard,
-  onUpdateRoom, 
+  onUpdateRoom,
   onUpdateSelectedRooms,
-  onDeleteRoom, 
+  onDeleteRoom,
   onDeleteSelectedRooms,
   onDeleteConnection,
   onUpdateConnection,
@@ -58,44 +59,44 @@ export function Sidebar({
   onSplitRoom,
   onCopySelectedRooms,
   onPasteRooms,
-  t 
+  t
 }: SidebarProps) {
   // 다중 선택 모드인지 확인
   const isMultiSelect = selectedRoomIds.length > 0
   const selectedRooms = rooms.filter(r => selectedRoomIds.includes(r.id))
   // 연결선이 선택된 경우
   if (selectedConnection) {
-    const conn = connections.find(c => 
+    const conn = connections.find(c =>
       (c.fromId === selectedConnection.fromId && c.toId === selectedConnection.toId) ||
       (c.fromId === selectedConnection.toId && c.toId === selectedConnection.fromId)
     )
     const fromRoom = rooms.find(r => r.id === selectedConnection.fromId)
     const toRoom = rooms.find(r => r.id === selectedConnection.toId)
-    
+
     if (!conn) {
       return (
-        <div style={{
+        <div className="panel-base" style={{
           width: 320,
-          backgroundColor: '#1a1a24',
-          borderLeft: '1px solid #333',
+          borderRadius: 0,
+          borderTop: 'none', borderBottom: 'none', borderRight: 'none',
           padding: 20,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#555'
+          color: 'var(--text-muted)'
         }}>
-          <span style={{ fontSize: 48, marginBottom: 16 }}>🖱️</span>
+          <MousePointerClick size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
           <span style={{ fontSize: 14 }}>{t.clickToEdit}</span>
         </div>
       )
     }
-    
+
     return (
-      <div style={{
+      <div className="panel-base" style={{
         width: 320,
-        backgroundColor: '#1a1a24',
-        borderLeft: '1px solid #333',
+        borderRadius: 0,
+        borderTop: 'none', borderBottom: 'none', borderRight: 'none',
         padding: 20,
         overflowY: 'auto'
       }}>
@@ -108,10 +109,10 @@ export function Sidebar({
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
+            gap: 12,
             marginBottom: 8
           }}>
-            <span style={{ fontSize: 32 }}>🔗</span>
+            <LinkIcon size={28} color="var(--accent-blue)" />
             <div>
               <div style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>
                 {t.connectionSelected}
@@ -185,11 +186,11 @@ export function Sidebar({
             color: '#fff',
             fontSize: 13
           }}>
-            <div style={{ marginBottom: 4 }}>
-              📍 {fromRoom?.name || `${t.room} ${selectedConnection.fromId}`} (ID: {selectedConnection.fromId})
+            <div style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <MapPin size={14} color="var(--accent-indigo)" /> {fromRoom?.name || `${t.room} ${selectedConnection.fromId}`} (ID: {selectedConnection.fromId})
             </div>
-            <div>
-              📍 {toRoom?.name || `${t.room} ${selectedConnection.toId}`} (ID: {selectedConnection.toId})
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <MapPin size={14} color="var(--accent-indigo)" /> {toRoom?.name || `${t.room} ${selectedConnection.toId}`} (ID: {selectedConnection.toId})
             </div>
           </div>
         </div>
@@ -203,35 +204,26 @@ export function Sidebar({
           }}
           style={{
             width: '100%',
-            padding: '12px',
-            backgroundColor: 'transparent',
-            border: '1px solid #8b0000',
-            borderRadius: 6,
-            color: '#ff6b6b',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
             marginTop: 20
           }}
         >
-          <span>🗑️</span>
+          <Trash2 size={16} />
           {t.deleteConnection}
         </button>
 
         <div style={{
           marginTop: 16,
-          padding: 10,
-          backgroundColor: '#252530',
-          borderRadius: 6,
-          fontSize: 11,
-          color: '#666',
-          textAlign: 'center'
+          padding: 12,
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          borderRadius: 'var(--border-radius-md)',
+          fontSize: 12,
+          color: 'var(--text-muted)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6
         }}>
-          💡 Delete 키로도 삭제 가능
+          <Lightbulb size={14} color="var(--accent-blue)" /> Delete 키로도 삭제 가능
         </div>
       </div>
     )
@@ -244,10 +236,10 @@ export function Sidebar({
     const commonZoneId = zoneIds.length === 1 ? zoneIds[0] : null
 
     return (
-      <div style={{
+      <div className="panel-base" style={{
         width: 320,
-        backgroundColor: '#1a1a24',
-        borderLeft: '1px solid #333',
+        borderRadius: 0,
+        borderTop: 'none', borderBottom: 'none', borderRight: 'none',
         padding: 20,
         overflowY: 'auto'
       }}>
@@ -260,10 +252,10 @@ export function Sidebar({
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
+            gap: 12,
             marginBottom: 8
           }}>
-            <span style={{ fontSize: 32 }}>📦</span>
+            <Box size={28} color="var(--accent-indigo)" />
             <div>
               <div style={{ fontSize: 16, fontWeight: 600, color: '#00ffff' }}>
                 {selectedRoomIds.length}개 방 선택됨
@@ -276,51 +268,30 @@ export function Sidebar({
         </div>
 
         {/* 복사/붙여넣기 버튼 */}
-        <div style={{ 
-          display: 'flex', 
-          gap: 8, 
-          marginBottom: 16 
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          marginBottom: 16
         }}>
           <button
             onClick={onCopySelectedRooms}
-            style={{
-              flex: 1,
-              padding: '12px',
-              backgroundColor: '#2563eb',
-              border: 'none',
-              borderRadius: 6,
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6
-            }}
+            className="btn-base btn-primary"
+            style={{ flex: 1, padding: '10px' }}
           >
-            <span>📋</span> 복사 (Ctrl+C)
+            <Copy size={16} /> 복사 (Ctrl+C)
           </button>
           <button
             onClick={onPasteRooms}
             disabled={clipboard.length === 0}
+            className={`btn-base ${clipboard.length > 0 ? 'btn-primary' : 'btn-secondary'}`}
             style={{
               flex: 1,
-              padding: '12px',
-              backgroundColor: clipboard.length > 0 ? '#059669' : '#333',
-              border: 'none',
-              borderRadius: 6,
-              color: clipboard.length > 0 ? '#fff' : '#666',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: clipboard.length > 0 ? 'pointer' : 'not-allowed',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6
+              padding: '10px',
+              backgroundColor: clipboard.length > 0 ? 'var(--accent-green)' : undefined,
+              color: clipboard.length > 0 ? '#000' : undefined
             }}
           >
-            <span>📋</span> 붙여넣기 (Ctrl+V)
+            <ClipboardPaste size={16} /> 붙여넣기 (Ctrl+V)
           </button>
         </div>
 
@@ -423,24 +394,10 @@ export function Sidebar({
         {/* 일괄 삭제 버튼 */}
         <button
           onClick={onDeleteSelectedRooms}
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: 'transparent',
-            border: '1px solid #8b0000',
-            borderRadius: 6,
-            color: '#ff6b6b',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            marginTop: 20
-          }}
+          className="btn-base btn-danger"
+          style={{ width: '100%', padding: '10px', marginTop: 20 }}
         >
-          <span>🗑️</span>
+          <Trash2 size={16} />
           {selectedRoomIds.length}개 방 삭제
         </button>
 
@@ -463,38 +420,68 @@ export function Sidebar({
       </div>
     )
   }
-  
+
   if (!selectedRoom) {
     return (
-      <div style={{
+      <div className="panel-base" style={{
         width: 320,
-        backgroundColor: '#1a1a24',
-        borderLeft: '1px solid #333',
+        borderRadius: 0,
+        borderTop: 'none', borderBottom: 'none', borderRight: 'none',
         padding: 20,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#555'
+        color: 'var(--text-muted)'
       }}>
-        <span style={{ fontSize: 48, marginBottom: 16 }}>🖱️</span>
+        <MousePointerClick size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
         <span style={{ fontSize: 14 }}>{t.clickToEdit}</span>
-        <span style={{ fontSize: 12, marginTop: 8, color: '#444' }}>{t.clickConnectionToEdit}</span>
+        <span style={{ fontSize: 12, marginTop: 8, opacity: 0.7 }}>{t.clickConnectionToEdit}</span>
         <div style={{
           marginTop: 24,
-          padding: 12,
-          backgroundColor: '#252530',
-          borderRadius: 6,
-          fontSize: 11,
-          color: '#666',
-          textAlign: 'left'
+          padding: 16,
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          borderRadius: 'var(--border-radius-md)',
+          fontSize: 12,
+          color: 'var(--text-muted)',
+          textAlign: 'left',
+          width: '100%'
         }}>
-          <div style={{ marginBottom: 4, color: '#888' }}>💡 단축키:</div>
+          <div style={{ marginBottom: 8, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Lightbulb size={14} /> 단축키:
+          </div>
           <div>• 1: 선택 도구</div>
           <div>• 2: 방 그리기</div>
           <div>• 3: 연결 도구</div>
           <div>• Ctrl+클릭: 다중 선택</div>
           <div>• Ctrl+Z/Y: 실행취소/다시실행</div>
+        </div>
+        <div style={{
+          marginTop: 16,
+          padding: 16,
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          borderRadius: 'var(--border-radius-md)',
+          fontSize: 12,
+          color: 'var(--text-muted)',
+          textAlign: 'left',
+          width: '100%'
+        }}>
+          <div style={{ marginBottom: 8, color: 'var(--accent-indigo)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <MapPin size={14} /> 연결선 범례:
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 16, height: 2, backgroundColor: GATE_COLORS['none'] || '#888' }} />
+              <span>기본 (None)</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 16, height: 2, borderBottom: `2px dashed ${GATE_COLORS['dash']}` }} />
+              <span>능력 필요</span>
+            </div>
+          </div>
+          <div style={{ marginTop: 8, fontSize: 11, opacity: 0.7 }}>
+            * 연결선을 클릭하여 상세 조건을 변경할 수 있습니다.
+          </div>
         </div>
       </div>
     )
@@ -504,10 +491,10 @@ export function Sidebar({
   const hasDetail = !!selectedRoom.detail
 
   return (
-    <div style={{
+    <div className="panel-base" style={{
       width: 320,
-      backgroundColor: '#1a1a24',
-      borderLeft: '1px solid #333',
+      borderRadius: 0,
+      borderTop: 'none', borderBottom: 'none', borderRight: 'none',
       padding: 20,
       overflowY: 'auto'
     }}>
@@ -539,24 +526,10 @@ export function Sidebar({
       {onEditDetail && (
         <button
           onClick={() => onEditDetail(selectedRoom.id)}
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: '#2196F3',
-            border: 'none',
-            borderRadius: 6,
-            color: '#fff',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            marginBottom: 20
-          }}
+          className="btn-base btn-primary"
+          style={{ width: '100%', padding: '10px', marginBottom: 20 }}
         >
-          <span>🖼️</span>
+          <ImageIcon size={16} />
           {t.editDetail}
           {hasDetail && <span style={{ fontSize: 10, opacity: 0.7 }}>✓</span>}
         </button>
@@ -657,7 +630,7 @@ export function Sidebar({
               onBlur={(e) => onUpdateRoom(selectedRoom.id, { x: parseInt(e.target.value) || 0 }, true)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  ;(e.currentTarget as HTMLInputElement).blur()
+                  ; (e.currentTarget as HTMLInputElement).blur()
                 }
               }}
               style={{
@@ -681,7 +654,7 @@ export function Sidebar({
               onBlur={(e) => onUpdateRoom(selectedRoom.id, { y: parseInt(e.target.value) || 0 }, true)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  ;(e.currentTarget as HTMLInputElement).blur()
+                  ; (e.currentTarget as HTMLInputElement).blur()
                 }
               }}
               style={{
@@ -718,8 +691,8 @@ export function Sidebar({
               onChange={(e) => {
                 const newW = parseInt(e.target.value) || 1
                 // 단일 블록인 경우 rects도 함께 업데이트
-                const newRects: [number, number, number, number][] = 
-                  selectedRoom.rects?.length === 1 
+                const newRects: [number, number, number, number][] =
+                  selectedRoom.rects?.length === 1
                     ? [[0, 0, newW, selectedRoom.h]]
                     : selectedRoom.rects || [[0, 0, newW, selectedRoom.h]]
                 onUpdateRoom(selectedRoom.id, { w: newW, rects: newRects }, false)
@@ -734,7 +707,7 @@ export function Sidebar({
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  ;(e.currentTarget as HTMLInputElement).blur()
+                  ; (e.currentTarget as HTMLInputElement).blur()
                 }
               }}
               min={1}
@@ -758,8 +731,8 @@ export function Sidebar({
               onChange={(e) => {
                 const newH = parseInt(e.target.value) || 1
                 // 단일 블록인 경우 rects도 함께 업데이트
-                const newRects: [number, number, number, number][] = 
-                  selectedRoom.rects?.length === 1 
+                const newRects: [number, number, number, number][] =
+                  selectedRoom.rects?.length === 1
                     ? [[0, 0, selectedRoom.w, newH]]
                     : selectedRoom.rects || [[0, 0, selectedRoom.w, newH]]
                 onUpdateRoom(selectedRoom.id, { h: newH, rects: newRects }, false)
@@ -774,7 +747,7 @@ export function Sidebar({
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  ;(e.currentTarget as HTMLInputElement).blur()
+                  ; (e.currentTarget as HTMLInputElement).blur()
                 }
               }}
               min={1}
@@ -857,23 +830,10 @@ export function Sidebar({
           </div>
           <button
             onClick={() => onSplitRoom(selectedRoom.id)}
-            style={{
-              width: '100%',
-              padding: '10px',
-              backgroundColor: '#7c3aed',
-              border: 'none',
-              borderRadius: 6,
-              color: '#fff',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6
-            }}
+            className="btn-base btn-primary"
+            style={{ width: '100%', padding: '10px', backgroundColor: 'var(--accent-indigo)', color: '#fff' }}
           >
-            <span>✂️</span>
+            <Scissors size={14} />
             {t.splitRoom}
           </button>
           <div style={{
@@ -890,24 +850,10 @@ export function Sidebar({
       {/* Delete Button */}
       <button
         onClick={() => onDeleteRoom(selectedRoom.id)}
-        style={{
-          width: '100%',
-          padding: '12px',
-          backgroundColor: 'transparent',
-          border: '1px solid #8b0000',
-          borderRadius: 6,
-          color: '#ff6b6b',
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          marginTop: 20
-        }}
+        className="btn-base btn-danger"
+        style={{ width: '100%', padding: '10px', marginTop: 20 }}
       >
-        <span>🗑️</span>
+        <Trash2 size={16} />
         {t.deleteRoom}
       </button>
     </div>

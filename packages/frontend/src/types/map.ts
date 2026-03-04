@@ -23,13 +23,71 @@ export type ObjectType =
   | 'save_point'     // 세이브 포인트
   | 'transition'     // 방 전환 포인트
 
+// Unity Component Mapping Schema
+export interface UnityComponentDefinition {
+  type: string
+  properties?: Record<string, any>
+}
+
+export interface UnityTagMapping {
+  layer?: string
+  tag?: string
+  components: UnityComponentDefinition[]
+}
+
+// Built-in mapping for Unity export based on semantic tags
+export const UNITY_COMPONENT_MAP: Record<string, UnityTagMapping> = {
+  'Hazard': {
+    layer: 'Enemy',
+    tag: 'Hazard',
+    components: [
+      { type: 'BoxCollider2D', properties: { isTrigger: true } },
+      { type: 'HazardLogic', properties: { damage: 10 } }
+    ]
+  },
+  'Platform': {
+    layer: 'Platform',
+    tag: 'Untagged',
+    components: [
+      { type: 'BoxCollider2D', properties: { usedByEffector: true } },
+      { type: 'PlatformEffector2D', properties: { useOneWay: true } }
+    ]
+  },
+  'Portal': {
+    layer: 'Interactable',
+    tag: 'Portal',
+    components: [
+      { type: 'BoxCollider2D', properties: { isTrigger: true } },
+      { type: 'PortalLogic', properties: { targetRoomId: 0 } }
+    ]
+  }
+}
+
 // 방 내부 오브젝트
 export interface RoomObject {
   id: string
   type: ObjectType
   x: number  // 타일 좌표
   y: number
-  properties?: Record<string, unknown>
+  tags?: string[]
+  tagData?: Record<string, Record<string, unknown>>
+  properties?: Record<string, unknown> // legacy
+}
+
+export type LayerType = 'tile' | 'object' | 'image'
+
+export interface RoomLayer {
+  id: string
+  name: string
+  type: LayerType
+  visible: boolean
+  opacity: number
+  tiles?: TileType[][] // For tile layers
+  objects?: RoomObject[] // For object layers
+  imageUrl?: string // For image layers
+  imageScale?: number
+  imageOffsetX?: number
+  imageOffsetY?: number
 }
 
 // 방 상세 데이터
@@ -37,8 +95,10 @@ export interface RoomDetail {
   roomId: number
   tileWidth: number   // 타일 단위 너비 (예: 40)
   tileHeight: number  // 타일 단위 높이 (예: 23)
-  tiles: TileType[][] // 2D 타일 배열 [y][x]
-  objects: RoomObject[]
+  gridSize?: number   // 기본 16
+  layers: RoomLayer[]
+  tiles?: TileType[][] // legacy
+  objects?: RoomObject[] // legacy
 }
 
 // 타일 아이콘 매핑 (레거시: UI에서 아이콘을 제거하는 방향이므로 의존 최소화)
@@ -99,7 +159,7 @@ export interface Room {
   detail?: RoomDetail  // 상세맵 데이터 (선택적)
 }
 
-export type RoomType = 
+export type RoomType =
   | 'start'
   | 'hub'
   | 'normal'
@@ -121,7 +181,7 @@ export interface Connection {
   condition: GateCondition
 }
 
-export type GateCondition = 
+export type GateCondition =
   | 'none'
   | 'dash'
   | 'wall_jump'

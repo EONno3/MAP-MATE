@@ -5,7 +5,7 @@ export interface Translations {
   appName: string
   generating: string
   generatingDescription: string
-  
+
   // Toolbar
   generate: string
   exportJson: string
@@ -14,20 +14,20 @@ export interface Translations {
   rooms: string
   undo: string
   redo: string
-  
+
   // Tools
   toolSelect: string
   toolDraw: string
   toolConnect: string
   toolDelete: string
   drawing: string
-  
+
   // AI Prompt
   aiPrompt: string
   aiPromptPlaceholder: string
   generateFromPrompt: string
   aiGenerating: string
-  
+
   // ParamPanel
   parameters: string
   seedOptional: string
@@ -42,7 +42,7 @@ export interface Translations {
   high: string
   generateMap: string
   tipSeed: string
-  
+
   // Sidebar
   clickToEdit: string
   roomType: string
@@ -57,7 +57,7 @@ export interface Translations {
   neighbors: string
   deleteRoom: string
   editDetail: string
-  
+
   // Room Types
   roomTypeStart: string
   roomTypeHub: string
@@ -68,24 +68,27 @@ export interface Translations {
   roomTypeShop: string
   roomTypeStag: string
   roomTypeMap: string
-  
+
   // MapCanvas
   zoom: string
   dragging: string
   clickToConnect: string
   instructions: string
-  
+
   // Tooltip
   room: string
   type: string
   depth: string
-  
+
   // Errors
   error: string
   retry: string
   failedToImport: string
   invalidMapFormat: string
-  
+  mapEmptyTitle: string
+  mapEmptyDescription: string
+  mapErrorDescription: string
+
   // Room Editor
   backToWorldMap: string
   tiles: string
@@ -106,7 +109,7 @@ export interface Translations {
   brushTool: string
   fillTool: string
   brushSize: string
-  
+
   // Tiles
   tileEmpty: string
   tileSolid: string
@@ -115,7 +118,7 @@ export interface Translations {
   tileAcid: string
   tileBreakable: string
   tileDoor: string
-  
+
   // Objects
   objectSpawnPoint: string
   objectEnemySpawn: string
@@ -125,7 +128,7 @@ export interface Translations {
   objectNpc: string
   objectSavePoint: string
   objectTransition: string
-  
+
   // Zone Management
   zoneManagement: string
   addZone: string
@@ -136,18 +139,18 @@ export interface Translations {
   cannotDeleteLastZone: string
   assignZone: string
   newZone: string
-  
+
   // Connection Editing
   connectionSelected: string
   connectionCondition: string
   deleteConnection: string
   clickConnectionToEdit: string
-  
+
   // Room Operations
   splitRoom: string
   splitRoomHint: string
   cannotSplit: string
-  
+
   // Multi-selection
   multipleRoomsSelected: string
   batchZoneChange: string
@@ -166,7 +169,7 @@ export const translations: Record<Language, Translations> = {
     appName: 'Mapmate',
     generating: '맵 생성 중...',
     generatingDescription: '방, 연결선, POI를 생성하고 있습니다',
-    
+
     // Toolbar
     generate: '생성',
     exportJson: 'JSON 내보내기',
@@ -175,20 +178,20 @@ export const translations: Record<Language, Translations> = {
     rooms: '방',
     undo: '실행취소',
     redo: '다시실행',
-    
+
     // Tools
     toolSelect: '선택',
     toolDraw: '방 그리기',
     toolConnect: '연결',
     toolDelete: '삭제',
     drawing: '드래그하여 방 생성...',
-    
+
     // AI Prompt
     aiPrompt: 'AI 프롬프트',
     aiPromptPlaceholder: '예: 고층 건물이 있는 사이버펑크 도시...',
     generateFromPrompt: 'AI 생성',
     aiGenerating: 'AI 생성 중...',
-    
+
     // ParamPanel
     parameters: '생성 파라미터',
     seedOptional: '시드값 (선택)',
@@ -203,7 +206,7 @@ export const translations: Record<Language, Translations> = {
     high: '높음',
     generateMap: '맵 생성',
     tipSeed: '💡 팁: 시드를 비워두면 랜덤 생성됩니다. 같은 시드 + 설정 = 같은 맵',
-    
+
     // Sidebar
     clickToEdit: '방을 클릭하여 편집하세요',
     roomType: '방 유형',
@@ -218,7 +221,7 @@ export const translations: Record<Language, Translations> = {
     neighbors: '개 연결됨',
     deleteRoom: '방 삭제',
     editDetail: '상세맵 편집',
-    
+
     // Room Types
     roomTypeStart: '시작',
     roomTypeHub: '허브',
@@ -229,24 +232,27 @@ export const translations: Record<Language, Translations> = {
     roomTypeShop: '상점',
     roomTypeStag: '이동',
     roomTypeMap: '지도',
-    
+
     // MapCanvas
     zoom: '줌',
     dragging: '이동 중...',
     clickToConnect: '다른 방을 클릭하여 연결',
-    instructions: '스크롤: 줌 | Shift+드래그: 이동 | 클릭: 선택 | 드래그: 방 이동 | Ctrl+클릭: 연결 | 더블클릭: 상세맵 | Delete: 삭제',
-    
+    instructions: '스크롤: 줌 | Space+드래그: 이동 | 클릭: 방 메뉴 | 드래그: 방 이동 | Ctrl+클릭: 다중선택/연결 | 더블클릭: 상세맵 | Delete: 삭제',
+
     // Tooltip
     room: '방',
     type: '유형',
     depth: '깊이',
-    
+
     // Errors
     error: '오류',
     retry: '다시 시도',
     failedToImport: '가져오기 실패',
     invalidMapFormat: '잘못된 맵 파일 형식입니다',
-    
+    mapEmptyTitle: '맵이 아직 없습니다',
+    mapEmptyDescription: '새 맵을 생성하거나 JSON을 가져와 주세요',
+    mapErrorDescription: '서버와 통신할 수 없습니다',
+
     // Room Editor
     backToWorldMap: '전체맵',
     tiles: '타일',
@@ -261,13 +267,13 @@ export const translations: Record<Language, Translations> = {
     unsavedChanges: '저장하지 않은 변경사항이 있습니다. 나가시겠습니까?',
     unsavedChangesIndicator: '저장되지 않은 변경사항',
     confirmReset: '모든 변경사항을 초기화하시겠습니까?',
-    roomEditorInstructions: '클릭/드래그: 타일 그리기 | Shift+드래그: 이동 | 스크롤: 줌 | 오브젝트: 클릭 선택 후 드래그 이동 | Delete: 삭제',
+    roomEditorInstructions: '클릭/드래그: 그리기 | Space+드래그: 이동 | 단축키(B/G/E): 도구 변경 | 스크롤: 줌 | 오브젝트: 클릭 선택 후 드래그 | Delete: 삭제',
     objectDragHint: '오브젝트를 선택 후 드래그하여 이동',
     toolType: '도구 종류',
     brushTool: '브러시',
     fillTool: '채우기',
     brushSize: '브러시 크기',
-    
+
     // Tiles
     tileEmpty: '빈 공간',
     tileSolid: '벽/바닥',
@@ -276,7 +282,7 @@ export const translations: Record<Language, Translations> = {
     tileAcid: '산성',
     tileBreakable: '부서지는 벽',
     tileDoor: '문',
-    
+
     // Objects
     objectSpawnPoint: '스폰 지점',
     objectEnemySpawn: '적 스폰',
@@ -286,7 +292,7 @@ export const translations: Record<Language, Translations> = {
     objectNpc: 'NPC',
     objectSavePoint: '세이브',
     objectTransition: '방 전환',
-    
+
     // Zone Management
     zoneManagement: '구역 관리',
     addZone: '구역 추가',
@@ -297,18 +303,18 @@ export const translations: Record<Language, Translations> = {
     cannotDeleteLastZone: '마지막 구역은 삭제할 수 없습니다',
     assignZone: '구역 지정',
     newZone: '새 구역',
-    
+
     // Connection Editing
     connectionSelected: '연결 선택됨',
     connectionCondition: '연결 조건',
     deleteConnection: '연결 삭제',
     clickConnectionToEdit: '연결선을 클릭하여 편집',
-    
+
     // Room Operations
     splitRoom: '방 분리',
     splitRoomHint: '복합 방을 개별 방으로 분리',
     cannotSplit: '분리할 수 없음 (단일 블록)',
-    
+
     // Multi-selection
     multipleRoomsSelected: '개 방 선택됨',
     batchZoneChange: '일괄 구역 변경',
@@ -320,13 +326,13 @@ export const translations: Record<Language, Translations> = {
     mixed: '혼합됨',
     selectType: '유형 선택'
   },
-  
+
   en: {
     // App
     appName: 'Mapmate',
     generating: 'Generating Map...',
     generatingDescription: 'Creating rooms, connections, and POIs',
-    
+
     // Toolbar
     generate: 'Generate',
     exportJson: 'Export JSON',
@@ -335,20 +341,20 @@ export const translations: Record<Language, Translations> = {
     rooms: 'Rooms',
     undo: 'Undo',
     redo: 'Redo',
-    
+
     // Tools
     toolSelect: 'Select',
     toolDraw: 'Draw Room',
     toolConnect: 'Connect',
     toolDelete: 'Delete',
     drawing: 'Drag to create room...',
-    
+
     // AI Prompt
     aiPrompt: 'AI Prompt',
     aiPromptPlaceholder: 'e.g., A cyberpunk city with tall buildings...',
     generateFromPrompt: 'AI Generate',
     aiGenerating: 'AI Generating...',
-    
+
     // ParamPanel
     parameters: 'Generation Parameters',
     seedOptional: 'Seed (Optional)',
@@ -363,7 +369,7 @@ export const translations: Record<Language, Translations> = {
     high: 'High',
     generateMap: 'Generate Map',
     tipSeed: '💡 Tip: Leave seed empty for random generation. Same seed + params = same map.',
-    
+
     // Sidebar
     clickToEdit: 'Click on a room to edit',
     roomType: 'Room Type',
@@ -378,7 +384,7 @@ export const translations: Record<Language, Translations> = {
     neighbors: 'neighbors',
     deleteRoom: 'Delete Room',
     editDetail: 'Edit Detail',
-    
+
     // Room Types
     roomTypeStart: 'Start',
     roomTypeHub: 'Hub',
@@ -389,24 +395,27 @@ export const translations: Record<Language, Translations> = {
     roomTypeShop: 'Shop',
     roomTypeStag: 'Stag',
     roomTypeMap: 'Map',
-    
+
     // MapCanvas
     zoom: 'Zoom',
     dragging: 'Dragging...',
     clickToConnect: 'Click another room to connect',
-    instructions: 'Scroll: Zoom | Shift+Drag: Pan | Click: Select | Drag: Move | Ctrl+Click: Connect | Double-click: Detail | Delete: Remove',
-    
+    instructions: 'Scroll: Zoom | Space+Drag: Pan | Click: Menu | Drag: Move | Ctrl+Click: Connect | Double-click: Detail | Delete: Remove',
+
     // Tooltip
     room: 'Room',
     type: 'Type',
     depth: 'Depth',
-    
+
     // Errors
     error: 'Error',
     retry: 'Retry',
     failedToImport: 'Failed to import',
     invalidMapFormat: 'Invalid map file format',
-    
+    mapEmptyTitle: 'No map yet',
+    mapEmptyDescription: 'Generate a new map or import JSON to begin',
+    mapErrorDescription: 'Unable to reach the server',
+
     // Room Editor
     backToWorldMap: 'World Map',
     tiles: 'tiles',
@@ -421,13 +430,13 @@ export const translations: Record<Language, Translations> = {
     unsavedChanges: 'You have unsaved changes. Are you sure you want to leave?',
     unsavedChangesIndicator: 'Unsaved changes',
     confirmReset: 'Reset all changes?',
-    roomEditorInstructions: 'Click/Drag: Paint | Shift+Drag: Pan | Scroll: Zoom | Object: Click to select, drag to move | Delete: Remove',
+    roomEditorInstructions: 'Click/Drag: Paint | Space+Drag: Pan | Keys(B/G/E): Tools | Scroll: Zoom | Delete: Remove',
     objectDragHint: 'Select object then drag to move',
     toolType: 'Tool Type',
     brushTool: 'Brush',
     fillTool: 'Fill',
     brushSize: 'Brush Size',
-    
+
     // Tiles
     tileEmpty: 'Empty',
     tileSolid: 'Solid',
@@ -436,7 +445,7 @@ export const translations: Record<Language, Translations> = {
     tileAcid: 'Acid',
     tileBreakable: 'Breakable',
     tileDoor: 'Door',
-    
+
     // Objects
     objectSpawnPoint: 'Spawn Point',
     objectEnemySpawn: 'Enemy Spawn',
@@ -446,7 +455,7 @@ export const translations: Record<Language, Translations> = {
     objectNpc: 'NPC',
     objectSavePoint: 'Save Point',
     objectTransition: 'Transition',
-    
+
     // Zone Management
     zoneManagement: 'Zone Management',
     addZone: 'Add Zone',
@@ -457,18 +466,18 @@ export const translations: Record<Language, Translations> = {
     cannotDeleteLastZone: 'Cannot delete the last zone',
     assignZone: 'Assign Zone',
     newZone: 'New Zone',
-    
+
     // Connection Editing
     connectionSelected: 'Connection Selected',
     connectionCondition: 'Connection Condition',
     deleteConnection: 'Delete Connection',
     clickConnectionToEdit: 'Click connection to edit',
-    
+
     // Room Operations
     splitRoom: 'Split Room',
     splitRoomHint: 'Split complex room into individual rooms',
     cannotSplit: 'Cannot split (single block)',
-    
+
     // Multi-selection
     multipleRoomsSelected: ' rooms selected',
     batchZoneChange: 'Batch Zone Change',

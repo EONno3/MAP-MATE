@@ -1,14 +1,18 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
-import { Room, Zone, RoomDetail, TileType, ObjectType, RoomObject, TILES_PER_CHUNK_X, TILES_PER_CHUNK_Y, OBJECT_ICONS } from '../../types/map'
+import { Room, Zone, MapData, RoomDetail, TileType, ObjectType, RoomObject, TILES_PER_CHUNK_X, TILES_PER_CHUNK_Y, OBJECT_ICONS, Connection } from '../../types/map'
 import { Translations } from '../../i18n/translations'
 import { RoomToolbar } from './RoomToolbar'
 import { RoomCanvas, RoomToolMode } from './RoomCanvas'
 import { TilePalette } from './TilePalette'
 import { ObjectPalette } from './ObjectPalette'
+import { TagEditor } from './TagEditor'
+import { PlayTestMode } from './PlayTestMode'
+import { RoomNavigator } from './RoomNavigator'
 import { useHistory } from '../../hooks/useHistory'
 import { RadialMenu, RadialMenuItem } from '../RadialMenu'
 import type { TileCatalogApi } from '../../hooks/useTileCatalog'
 import { selectTileKeyByDigitHotkey } from '../../lib/tileHotkeys'
+import { Undo2, Redo2, Bot, Palette, Box, PenTool, Wrench, Square, Ruler, Plus, Loader2, Lightbulb, AlertTriangle, Eraser, Layers, Play } from 'lucide-react'
 
 // API URL
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -16,6 +20,8 @@ const API_URL = import.meta.env.VITE_API_URL || ''
 interface RoomEditorProps {
   room: Room
   zone: Zone | null
+  mapData: MapData | null
+  connections?: Connection[]
   onBack: () => void
   onSave: (room: Room) => void
   t: Translations
@@ -42,50 +48,28 @@ function generateDefaultRoomDetail(room: Room): RoomDetail {
 
   // 특수 방 타입에 따른 기본 오브젝트 배치
   const objects: RoomObject[] = []
-  
+
   if (room.type === 'start') {
-    objects.push({
-      id: 'default_spawn',
-      type: 'spawn_point',
-      x: Math.floor(tileWidth / 2),
-      y: tileHeight - 3
-    })
+    objects.push({ id: 'default_spawn', type: 'spawn_point', x: Math.floor(tileWidth / 2), y: tileHeight - 3 })
   } else if (room.type === 'save') {
-    objects.push({
-      id: 'default_save',
-      type: 'save_point',
-      x: Math.floor(tileWidth / 2),
-      y: tileHeight - 3
-    })
+    objects.push({ id: 'default_save', type: 'save_point', x: Math.floor(tileWidth / 2), y: tileHeight - 3 })
   } else if (room.type === 'boss') {
-    objects.push({
-      id: 'default_enemy',
-      type: 'enemy_spawn',
-      x: Math.floor(tileWidth / 2),
-      y: tileHeight - 3
-    })
+    objects.push({ id: 'default_enemy', type: 'enemy_spawn', x: Math.floor(tileWidth / 2), y: tileHeight - 3 })
   } else if (room.type === 'item') {
-    objects.push({
-      id: 'default_chest',
-      type: 'chest',
-      x: Math.floor(tileWidth / 2),
-      y: tileHeight - 3
-    })
+    objects.push({ id: 'default_chest', type: 'chest', x: Math.floor(tileWidth / 2), y: tileHeight - 3 })
   } else if (room.type === 'shop') {
-    objects.push({
-      id: 'default_npc',
-      type: 'npc',
-      x: Math.floor(tileWidth / 2),
-      y: tileHeight - 3
-    })
+    objects.push({ id: 'default_npc', type: 'npc', x: Math.floor(tileWidth / 2), y: tileHeight - 3 })
   }
 
   return {
     roomId: room.id,
     tileWidth,
     tileHeight,
-    tiles,
-    objects
+    gridSize: 16,
+    layers: [
+      { id: 'layer_base', name: 'Base Terrain', type: 'tile', visible: true, opacity: 1, tiles },
+      { id: 'layer_objects', name: 'Entities', type: 'object', visible: true, opacity: 1, objects }
+    ]
   }
 }
 
@@ -101,7 +85,7 @@ const OBJECT_WHEEL_ITEMS: RadialMenuItem[] = [
   { id: 'transition', label: '방 전환', icon: OBJECT_ICONS.transition, color: '#ec4899' }
 ]
 
-export function RoomEditor({ room, zone, onBack, onSave, t, tileCatalog }: RoomEditorProps) {
+export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t, tileCatalog }: RoomEditorProps) {
   // Initialize room detail with history
   const {
     state: roomDetail,
@@ -112,14 +96,18 @@ export function RoomEditor({ room, zone, onBack, onSave, t, tileCatalog }: RoomE
     canRedo,
     reset: resetHistory
   } = useHistory<RoomDetail>(room.detail || generateDefaultRoomDetail(room))
-  
+
   const [selectedTile, setSelectedTile] = useState<TileType>('solid')
   const [selectedObject, setSelectedObject] = useState<ObjectType | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
+  const [isPlayingTest, setIsPlayingTest] = useState(false)
+  const [activeLayerId, setActiveLayerId] = useState<string>('layer_base')
+  const [selectedObjectInstance, setSelectedObjectInstance] = useState<string | null>(null)
   const [brushSize, setBrushSize] = useState(1)
   const [toolMode, setToolMode] = useState<RoomToolMode>('brush')
+  const [activeTab, setActiveTab] = useState<'tiles' | 'objects' | 'layers'>('tiles')
 
   const {
     items: tileItems,
@@ -141,7 +129,7 @@ export function RoomEditor({ room, zone, onBack, onSave, t, tileCatalog }: RoomE
     const exists = tileItems.some((t) => t.key === selectedTile)
     if (!exists) setSelectedTile('solid')
   }, [tileItems, selectedTile])
-  
+
   // Radial Menu 상태
   const [showTileWheel, setShowTileWheel] = useState(false)
   const [showObjectWheel, setShowObjectWheel] = useState(false)
@@ -157,26 +145,61 @@ export function RoomEditor({ room, zone, onBack, onSave, t, tileCatalog }: RoomE
     setHasChanges(false)
   }, [room, resetHistory])
 
-  // Handle tile update (recordHistory: true = 히스토리에 기록, false = 화면만 업데이트)
-  const handleUpdateTiles = useCallback((tiles: TileType[][], recordHistory: boolean = true) => {
-    setRoomDetailHistory({ ...roomDetail, tiles }, recordHistory)
+  // Handle tiles update on active layer
+  const handleUpdateActiveLayerTiles = useCallback((tiles: TileType[][], recordHistory: boolean = true) => {
+    const newLayers = roomDetail.layers.map(l => l.id === activeLayerId && l.type === 'tile' ? { ...l, tiles } : l)
+    setRoomDetailHistory({ ...roomDetail, layers: newLayers }, recordHistory)
     if (recordHistory) {
+      setHasChanges(true)
+    }
+  }, [roomDetail, activeLayerId, setRoomDetailHistory])
+
+  // Handle objects update on active layer
+  const handleUpdateActiveLayerObjects = useCallback((objects: RoomObject[], recordHistory: boolean = true) => {
+    const newLayers = roomDetail.layers.map(l => l.id === activeLayerId && l.type === 'object' ? { ...l, objects } : l)
+    setRoomDetailHistory({ ...roomDetail, layers: newLayers }, recordHistory)
+    if (recordHistory) {
+      setHasChanges(true)
+    }
+  }, [roomDetail, activeLayerId, setRoomDetailHistory])
+
+  const handleUpdateObjectProperties = useCallback((updatedObj: RoomObject) => {
+    let newLayers = [...roomDetail.layers]
+    let found = false
+    for (let i = 0; i < newLayers.length; i++) {
+      const layer = newLayers[i]
+      if (layer.type === 'object' && layer.objects) {
+        const idx = layer.objects.findIndex(o => o.id === updatedObj.id)
+        if (idx >= 0) {
+          const newObjects = [...layer.objects]
+          newObjects[idx] = updatedObj
+          newLayers[i] = { ...layer, objects: newObjects }
+          found = true
+          break
+        }
+      }
+    }
+    if (found) {
+      setRoomDetailHistory({ ...roomDetail, layers: newLayers }, true)
       setHasChanges(true)
     }
   }, [roomDetail, setRoomDetailHistory])
 
-  // Handle objects update
-  const handleUpdateObjects = useCallback((objects: RoomObject[], recordHistory: boolean = true) => {
-    setRoomDetailHistory({ ...roomDetail, objects }, recordHistory)
-    if (recordHistory) {
-      setHasChanges(true)
+  const selectedObjectData = useMemo(() => {
+    if (!selectedObjectInstance) return null
+    for (const l of roomDetail.layers) {
+      if (l.type === 'object' && l.objects) {
+        const obj = l.objects.find(o => o.id === selectedObjectInstance)
+        if (obj) return obj
+      }
     }
-  }, [roomDetail, setRoomDetailHistory])
+    return null
+  }, [selectedObjectInstance, roomDetail.layers])
 
   // AI 프롬프트로 상세맵 생성
   const handleGenerateFromAI = useCallback(async () => {
     if (!aiPrompt.trim()) return
-    
+
     setAiLoading(true)
     try {
       const response = await fetch(`${API_URL}/generate/room-detail`, {
@@ -196,14 +219,25 @@ export function RoomEditor({ room, zone, onBack, onSave, t, tileCatalog }: RoomE
       }
 
       const data = await response.json()
-      
+
       // API 응답을 RoomDetail로 변환
+      let newLayers = [...roomDetail.layers]
+      const baseLayerIndex = newLayers.findIndex(l => l.name === 'Base Terrain' && l.type === 'tile')
+      if (baseLayerIndex !== -1 && data.tiles) {
+        newLayers[baseLayerIndex] = { ...newLayers[baseLayerIndex], tiles: data.tiles }
+      }
+
+      const objLayerIndex = newLayers.findIndex(l => l.name === 'Entities' && l.type === 'object')
+      if (objLayerIndex !== -1 && data.objects) {
+        newLayers[objLayerIndex] = { ...newLayers[objLayerIndex], objects: data.objects }
+      }
+
       const newDetail: RoomDetail = {
         roomId: room.id,
         tileWidth: roomDetail.tileWidth,
         tileHeight: roomDetail.tileHeight,
-        tiles: data.tiles || roomDetail.tiles,
-        objects: data.objects || roomDetail.objects
+        gridSize: roomDetail.gridSize,
+        layers: newLayers
       }
 
       setRoomDetailHistory(newDetail)
@@ -244,11 +278,13 @@ export function RoomEditor({ room, zone, onBack, onSave, t, tileCatalog }: RoomE
   // Tool selection - when object is selected, deselect tile mode
   const handleSelectObject = useCallback((obj: ObjectType | null) => {
     setSelectedObject(obj)
+    if (obj) setActiveTab('objects')
   }, [])
 
   const handleSelectTile = useCallback((tile: TileType) => {
     setSelectedTile(tile)
     setSelectedObject(null) // Deselect object when switching to tile mode
+    setActiveTab('tiles')
   }, [])
 
   // 마우스 위치 추적
@@ -307,8 +343,30 @@ export function RoomEditor({ room, zone, onBack, onSave, t, tileCatalog }: RoomE
         }
       }
 
+      // Mnemonic Hotkeys (B, G, E)
+      if (!isTextEditing && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (e.code === 'KeyB') {
+          e.preventDefault()
+          handleSelectTile(selectedTile === 'empty' ? 'solid' : selectedTile)
+          setToolMode('brush')
+          return
+        }
+        if (e.code === 'KeyG' || e.code === 'KeyF') {
+          e.preventDefault()
+          handleSelectTile(selectedTile)
+          setToolMode('fill')
+          return
+        }
+        if (e.code === 'KeyE') {
+          e.preventDefault()
+          handleSelectTile('empty')
+          setToolMode('brush')
+          return
+        }
+      }
+
       // 1 또는 2 키 길게 누르면 휠 표시
-      if (!e.repeat) {
+      if (!isTextEditing && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
         if (e.key === '1') {
           keyHoldTimeout.current = window.setTimeout(() => {
             setWheelPosition(mousePositionRef.current)
@@ -331,13 +389,12 @@ export function RoomEditor({ room, zone, onBack, onSave, t, tileCatalog }: RoomE
       }
 
       // 짧게 누르면 도구 전환
-      if (e.key === '1' && !showTileWheel) {
-        setSelectedObject(null) // 타일 모드로 전환
-      } else if (e.key === '2' && !showObjectWheel) {
-        // 오브젝트 모드로 전환 (첫 번째 오브젝트 선택)
-        if (!selectedObject) {
-          setSelectedObject('spawn_point')
-        }
+      const target = e.target as HTMLElement
+      const isTextEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
+      if (!isTextEditing && e.key === '1' && !showTileWheel) {
+        handleSelectTile(selectedTile)
+      } else if (!isTextEditing && e.key === '2' && !showObjectWheel) {
+        handleSelectObject(selectedObject || 'spawn_point')
       }
     }
 
@@ -385,7 +442,7 @@ export function RoomEditor({ room, zone, onBack, onSave, t, tileCatalog }: RoomE
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: '#0d0d12'
+      background: zone?.color ? `linear-gradient(to bottom right, ${zone.color}15, #0d0d12)` : '#0d0d12'
     }}>
       {/* Toolbar */}
       <RoomToolbar
@@ -403,432 +460,267 @@ export function RoomEditor({ room, zone, onBack, onSave, t, tileCatalog }: RoomE
         display: 'flex',
         overflow: 'hidden'
       }}>
-        {/* Canvas */}
-        <RoomCanvas
-          roomDetail={roomDetail}
-          selectedTile={selectedTile}
-          selectedObject={selectedObject}
-          brushSize={brushSize}
-          toolMode={toolMode}
-          onUpdateTiles={handleUpdateTiles}
-          onUpdateObjects={handleUpdateObjects}
-          tileColors={tileColorMap as any}
-          t={t}
-        />
-
-        {/* Right Panel */}
-        <div style={{
-          width: 320,
-          flex: '0 0 320px',
-          minWidth: 320,
-          backgroundColor: '#1a1a24',
-          borderLeft: '1px solid #333',
-          padding: 16,
-          overflowY: 'auto'
+        {/* Left Panel (Tools & Palettes) */}
+        <div className="panel-base animate-slide-in-left" style={{
+          width: 320, flex: '0 0 320px', minWidth: 320,
+          borderRadius: 0, borderTop: 'none', borderBottom: 'none', borderLeft: 'none',
+          display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-panel)',
+          zIndex: 10
         }}>
-          {/* Undo/Redo */}
-          <div style={{
-            display: 'flex',
-            gap: 8,
-            marginBottom: 16
-          }}>
-            <button
-              onClick={undo}
-              disabled={!canUndo}
-              title={`${t.undo} (Ctrl+Z)`}
-              style={{
-                flex: 1,
-                padding: '8px',
-                backgroundColor: canUndo ? '#555' : '#333',
-                color: canUndo ? '#fff' : '#666',
-                border: 'none',
-                borderRadius: 4,
-                cursor: canUndo ? 'pointer' : 'not-allowed',
-                fontSize: 13
-              }}
-            >
-              ↩️ {t.undo}
+          {/* Tab Switcher (Tiles / Objects) */}
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', backgroundColor: 'var(--bg-panel-hover)' }}>
+            <button key="tab-tiles" onClick={() => { setActiveTab('tiles'); handleSelectTile(selectedTile); }} style={{ flex: 1, padding: '12px', border: 'none', background: 'transparent', cursor: 'pointer', color: activeTab === 'tiles' ? 'var(--accent-blue)' : 'var(--text-muted)', borderBottom: activeTab === 'tiles' ? '2px solid var(--accent-blue)' : '2px solid transparent', fontWeight: activeTab === 'tiles' ? 700 : 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.2s' }}>
+              <Layers size={16} /> 타일 팔레트
             </button>
-            <button
-              onClick={redo}
-              disabled={!canRedo}
-              title={`${t.redo} (Ctrl+Y)`}
-              style={{
-                flex: 1,
-                padding: '8px',
-                backgroundColor: canRedo ? '#555' : '#333',
-                color: canRedo ? '#fff' : '#666',
-                border: 'none',
-                borderRadius: 4,
-                cursor: canRedo ? 'pointer' : 'not-allowed',
-                fontSize: 13
-              }}
-            >
-              ↪️ {t.redo}
+            <button key="tab-objects" onClick={() => { setActiveTab('objects'); handleSelectObject(selectedObject || 'spawn_point'); }} style={{ flex: 1, padding: '12px', border: 'none', background: 'transparent', cursor: 'pointer', color: activeTab === 'objects' ? 'var(--accent-blue)' : 'var(--text-muted)', borderBottom: activeTab === 'objects' ? '2px solid var(--accent-blue)' : '2px solid transparent', fontWeight: activeTab === 'objects' ? 700 : 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.2s' }}>
+              <Box size={16} /> 오브젝트 팔레트
             </button>
           </div>
 
-          {/* AI Generation Section */}
-          <div style={{
-            marginBottom: 16,
-            padding: 12,
-            backgroundColor: '#1a1520',
-            borderRadius: 8,
-            border: '1px solid #3d2963'
-          }}>
-            <div style={{ fontSize: 11, color: '#a78bfa', marginBottom: 8, fontWeight: 600 }}>
-              🤖 AI 상세맵 생성
+          <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+            {/* Tools Area */}
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
+              <Wrench size={14} /> 그리기 도구
             </div>
-            <textarea
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder="예: 플랫폼이 많은 수직 구조, 가시 함정 있음"
-              style={{
-                width: '100%',
-                minHeight: 60,
-                padding: '8px',
-                backgroundColor: '#252530',
-                border: '1px solid #444',
-                borderRadius: 4,
-                color: '#fff',
-                fontSize: 11,
-                resize: 'vertical',
-                marginBottom: 8
-              }}
-            />
-            <button
-              onClick={handleGenerateFromAI}
-              disabled={aiLoading || !aiPrompt.trim()}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: aiLoading ? '#333' : !aiPrompt.trim() ? '#444' : '#7c3aed',
-                border: 'none',
-                borderRadius: 4,
-                color: '#fff',
-                cursor: aiLoading || !aiPrompt.trim() ? 'not-allowed' : 'pointer',
-                fontSize: 12,
-                fontWeight: 600
-              }}
-            >
-              {aiLoading ? '⏳ 생성 중...' : '🎨 AI 생성'}
-            </button>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <button key="tool-brush" onClick={() => { handleSelectTile(selectedTile === 'empty' ? 'solid' : selectedTile); setToolMode('brush') }} className={`btn-base ${toolMode === 'brush' && !selectedObject && selectedTile !== 'empty' ? 'btn-primary' : 'btn-secondary'}`} style={{ flex: 1, padding: '8px' }} title="붙이기 (B)"><PenTool size={14} /></button>
+              <button key="tool-eraser" onClick={() => { handleSelectTile('empty'); setToolMode('brush') }} className={`btn-base ${toolMode === 'brush' && !selectedObject && selectedTile === 'empty' ? 'btn-primary' : 'btn-secondary'}`} style={{ flex: 1, padding: '8px', backgroundColor: toolMode === 'brush' && !selectedObject && selectedTile === 'empty' ? 'var(--accent-red)' : undefined }} title="지우개 (E)"><Eraser size={14} /></button>
+              <button key="tool-fill" onClick={() => { handleSelectTile(selectedTile); setToolMode('fill') }} className={`btn-base ${toolMode === 'fill' && !selectedObject ? 'btn-primary' : 'btn-secondary'}`} style={{ flex: 1, padding: '8px', backgroundColor: toolMode === 'fill' && !selectedObject ? 'var(--accent-green)' : undefined, color: toolMode === 'fill' && !selectedObject ? '#000' : undefined }} title="채우기 (G)"><Square size={14} /></button>
+            </div>
+
+            {!selectedObject && toolMode === 'brush' && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>브러시 크기</span>
+                  <span style={{ fontSize: 11, color: '#fff', fontWeight: 600, backgroundColor: 'var(--accent-blue)', padding: '2px 6px', borderRadius: 4 }}>{brushSize}×{brushSize}</span>
+                </div>
+                <input type="range" min="1" max="5" value={brushSize} onChange={(e) => setBrushSize(parseInt(e.target.value))} style={{ width: '100%' }} />
+              </div>
+            )}
+
+            <div style={{ height: 1, backgroundColor: 'var(--border-light)', margin: '16px 0' }} />
+
+            {/* Content Based on Left Tab */}
+            {activeTab === 'tiles' && (
+              <div className="animate-fade-in">
+                {/* AI Generation Section (Tile specific) */}
+                <div style={{ marginBottom: 16, padding: 12, backgroundColor: 'rgba(124, 58, 237, 0.05)', borderRadius: 'var(--border-radius-md)', border: '1px solid var(--border-light)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--accent-indigo)', marginBottom: 8, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Bot size={14} /> AI 맵 생성 (현재 영역 덮어쓰기)
+                  </div>
+                  <textarea value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="예: 플랫폼이 많은 수직 구조, 가시 함정 있음" className="input-base" style={{ width: '100%', minHeight: 60, resize: 'vertical', marginBottom: 8 }} />
+                  <button onClick={handleGenerateFromAI} disabled={aiLoading || !aiPrompt.trim()} className="btn-base" style={{ width: '100%', padding: '8px', backgroundColor: aiLoading ? 'var(--bg-panel-hover)' : !aiPrompt.trim() ? 'var(--bg-panel)' : 'var(--accent-indigo)', color: '#fff', fontSize: 13 }}>
+                    {aiLoading ? <><Loader2 size={14} className="animate-spin" /> 생성 중...</> : <><Palette size={14} /> AI 생성</>}
+                  </button>
+                </div>
+
+
+                <TilePalette selectedTile={selectedTile} onSelectTile={handleSelectTile} tileColors={tileColorMap as any} t={t} tiles={tileItems.map((it) => ({ key: it.key, color: it.color, label: it.label }))} />
+
+                {/* Tile Mgmt */}
+                <div style={{ marginTop: 12, padding: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 'var(--border-radius-md)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Palette size={14} /> 타일 색상/이름 관리
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {tileItems.map((tile) => (
+                      <div key={tile.key} style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 8, borderBottom: '1px solid #333' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                          <div style={{ width: 18, height: 18, backgroundColor: tile.color, borderRadius: 4, border: tile.key === 'empty' ? '1px dashed #666' : '1px solid #444', flex: '0 0 auto' }} />
+                          <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: '#ccc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tile.label}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <input type="color" value={tile.color as string} onChange={(e) => setTileColor(tile.key, e.target.value)} style={{ width: 34, height: 28, border: 'none', background: 'transparent', cursor: 'pointer' }} title={`${tile.key} 색상`} />
+                          <button onClick={() => { const next = prompt('타일명(한국어)', tile.label) ?? ''; setTileName(tile.key, next); }} style={{ padding: '6px 8px', fontSize: 11, background: '#333', border: '1px solid #444', color: '#ddd', borderRadius: 6, cursor: 'pointer' }}>이름</button>
+                          <button onClick={() => { if (tile.isBuiltin) return; const ok = confirm(`타일을 삭제할까요?\n\n- ${tile.label}\n- key: ${tile.key}`); if (ok) deleteTile(tile.key); }} disabled={tile.isBuiltin} style={{ padding: '6px 8px', fontSize: 11, background: tile.isBuiltin ? '#2a2a34' : '#3a1f1f', border: '1px solid #444', color: tile.isBuiltin ? '#666' : '#ffb4b4', borderRadius: 6, cursor: tile.isBuiltin ? 'not-allowed' : 'pointer' }}>삭제</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #333' }}>
+                    <div style={{ fontSize: 11, color: '#888', marginBottom: 8, fontWeight: 600 }}>➕ 새 타일 추가</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      <input value={newTileName} onChange={(e) => setNewTileName(e.target.value)} placeholder="타일명" style={{ flex: 1, padding: '6px 8px', background: '#1a1a24', border: '1px solid #444', borderRadius: 6, color: '#fff', fontSize: 11 }} />
+                      <input type="color" value={newTileColor} onChange={(e) => setNewTileColor(e.target.value)} style={{ width: 34, height: 34, border: 'none', background: 'transparent', cursor: 'pointer' }} />
+                    </div>
+                    <button onClick={() => { addTile({ color: newTileColor, name: newTileName || undefined }); setNewTileName(''); }} style={{ width: '100%', padding: '8px', backgroundColor: '#3b82f6', border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>새 타일 추가</button>
+                  </div>
+                  <button onClick={resetTileCatalog} className="btn-base btn-secondary" style={{ width: '100%', marginTop: 10, padding: '8px' }}>초기화</button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'objects' && (
+              <div className="animate-fade-in">
+                <ObjectPalette selectedObject={selectedObject} onSelectObject={handleSelectObject} t={t} />
+              </div>
+            )}
+
+            {/* Hint Footer */}
+            <div style={{ marginTop: 24, padding: 12, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 'var(--border-radius-sm)', fontSize: 11, color: 'var(--text-muted)' }}>
+              <div style={{ marginBottom: 6, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: 4 }}><Lightbulb size={14} /> 단축키 팁</div>
+              <div>• B: 붙이기 / E: 지우기 / G: 채우기</div>
+              <div>• Spacebar + 드래그: 지도 이동</div>
+              <div>• 1/2키 길게: 퀵 방사형 메뉴</div>
+            </div>
           </div>
+        </div>
 
-          {/* Tool Info */}
-          <div style={{
-            marginBottom: 16,
-            padding: 12,
-            backgroundColor: '#252530',
-            borderRadius: 8
-          }}>
-            <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>
-              {t.currentTool}
-            </div>
-            <div style={{ fontSize: 14, color: '#fff', fontWeight: 600 }}>
-              {selectedObject ? (
-                <>📦 {t.objectMode}</>
-              ) : (
-                <>🖌️ {t.tileMode}</>
-              )}
-            </div>
-          </div>
-
-          {/* Brush/Fill Tool Toggle - Only visible in tile mode */}
-          {!selectedObject && (
-            <div style={{
-              marginBottom: 16,
-              padding: 12,
-              backgroundColor: '#252530',
-              borderRadius: 8
-            }}>
-              <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>
-                🔧 {t.toolType || '도구 종류'}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => setToolMode('brush')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    backgroundColor: toolMode === 'brush' ? '#4a90d9' : '#333',
-                    border: toolMode === 'brush' ? '2px solid #6ab0ff' : '2px solid transparent',
-                    borderRadius: 6,
-                    color: '#fff',
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    fontWeight: 500
-                  }}
-                >
-                  🖌️ {t.brushTool || '브러시'}
-                </button>
-                <button
-                  onClick={() => setToolMode('fill')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    backgroundColor: toolMode === 'fill' ? '#22c55e' : '#333',
-                    border: toolMode === 'fill' ? '2px solid #4ade80' : '2px solid transparent',
-                    borderRadius: 6,
-                    color: '#fff',
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    fontWeight: 500
-                  }}
-                >
-                  ⬜ {t.fillTool || '채우기'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Brush Size - Only visible in brush mode */}
-          {!selectedObject && toolMode === 'brush' && (
-            <div style={{
-              marginBottom: 16,
-              padding: 12,
-              backgroundColor: '#252530',
-              borderRadius: 8
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: 8
-              }}>
-                <span style={{ fontSize: 11, color: '#888' }}>
-                  📏 {t.brushSize || '브러시 크기'}
-                </span>
-                <span style={{ 
-                  fontSize: 13, 
-                  color: '#fff',
-                  fontWeight: 600,
-                  backgroundColor: '#4a90d9',
-                  padding: '2px 8px',
-                  borderRadius: 4
-                }}>
-                  {brushSize}×{brushSize}
-                </span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="5"
-                value={brushSize}
-                onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                style={{
-                  width: '100%',
-                  height: 24,
-                  cursor: 'pointer',
-                  accentColor: '#4a90d9'
-                }}
-              />
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                fontSize: 10,
-                color: '#666',
-                marginTop: 4
-              }}>
-                <span>1×1</span>
-                <span>3×3</span>
-                <span>5×5</span>
-              </div>
-            </div>
-          )}
-
-          {/* Tile Palette */}
-          <TilePalette
+        {/* Center Canvas */}
+        <div style={{ flex: 1, position: 'relative', display: 'flex', overflow: 'hidden' }}>
+          <RoomCanvas
+            roomDetail={roomDetail}
+            activeLayerId={activeLayerId}
             selectedTile={selectedTile}
-            onSelectTile={handleSelectTile}
+            selectedObject={selectedObject}
+            brushSize={brushSize}
+            toolMode={toolMode}
+            onUpdateActiveLayerTiles={handleUpdateActiveLayerTiles}
+            onUpdateActiveLayerObjects={handleUpdateActiveLayerObjects}
+            selectedObjectInstance={selectedObjectInstance}
+            onSelectObjectInstance={setSelectedObjectInstance}
             tileColors={tileColorMap as any}
             t={t}
-            tiles={tileItems.map((it) => ({ key: it.key, color: it.color, label: it.label }))}
           />
+        </div>
 
-          {/* Tile 관리 (색상/이름/추가) */}
-          <div style={{
-            marginTop: 12,
-            marginBottom: 16,
-            padding: 12,
-            backgroundColor: '#252530',
-            borderRadius: 8
-          }}>
-            <div style={{ fontSize: 11, color: '#888', marginBottom: 10, fontWeight: 600 }}>
-              🎨 타일 관리(색상/이름/추가)
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {tileItems.map((tile) => (
-                <div
-                  key={tile.key}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 6,
-                    paddingBottom: 8,
-                    borderBottom: '1px solid #333'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    <div style={{
-                      width: 18,
-                      height: 18,
-                      backgroundColor: tile.color,
-                      borderRadius: 4,
-                      border: tile.key === 'empty' ? '1px dashed #666' : '1px solid #444',
-                      flex: '0 0 auto'
-                    }} />
-                    <span style={{
-                      flex: 1,
-                      minWidth: 0,
-                      fontSize: 11,
-                      color: '#ccc',
-                      whiteSpace: 'nowrap',
-                      wordBreak: 'keep-all',
-                      overflowWrap: 'normal',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {tile.label}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input
-                      type="color"
-                      value={tile.color as string}
-                      onChange={(e) => setTileColor(tile.key, e.target.value)}
-                      style={{ width: 34, height: 28, border: 'none', background: 'transparent', cursor: 'pointer' }}
-                      title={`${tile.key} 색상`}
-                    />
-                    <button
-                      onClick={() => {
-                        const next = prompt('타일명(한국어)', tile.label) ?? ''
-                        setTileName(tile.key, next)
-                      }}
-                      style={{ padding: '6px 8px', fontSize: 11, background: '#333', border: '1px solid #444', color: '#ddd', borderRadius: 6, cursor: 'pointer' }}
-                      title="타일명 변경"
-                    >
-                      이름
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (tile.isBuiltin) return
-                        const ok = confirm(`타일을 삭제할까요?\n\n- ${tile.label}\n- key: ${tile.key}\n\n(현재 방에서 사용 중이면 '빈 공간'으로 표시될 수 있습니다.)`)
-                        if (!ok) return
-                        deleteTile(tile.key)
-                      }}
-                      disabled={tile.isBuiltin}
-                      style={{
-                        padding: '6px 8px',
-                        fontSize: 11,
-                        background: tile.isBuiltin ? '#2a2a34' : '#3a1f1f',
-                        border: '1px solid #444',
-                        color: tile.isBuiltin ? '#666' : '#ffb4b4',
-                        borderRadius: 6,
-                        cursor: tile.isBuiltin ? 'not-allowed' : 'pointer'
-                      }}
-                      title={tile.isBuiltin ? '기본 타일은 삭제할 수 없습니다' : '타일 삭제'}
-                    >
-                      삭제
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #333' }}>
-              <div style={{ fontSize: 11, color: '#888', marginBottom: 8, fontWeight: 600 }}>➕ 새 타일 추가</div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <input
-                  value={newTileName}
-                  onChange={(e) => setNewTileName(e.target.value)}
-                  placeholder="타일명(한국어)"
-                  style={{ flex: 1, padding: '6px 8px', background: '#1a1a24', border: '1px solid #444', borderRadius: 6, color: '#fff', fontSize: 11 }}
-                />
-                <input
-                  type="color"
-                  value={newTileColor}
-                  onChange={(e) => setNewTileColor(e.target.value)}
-                  style={{ width: 34, height: 34, border: 'none', background: 'transparent', cursor: 'pointer' }}
-                />
-              </div>
-              <button
-                onClick={() => {
-                  addTile({ color: newTileColor, name: newTileName || undefined })
-                  setNewTileName('')
-                }}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  backgroundColor: '#3b82f6',
-                  border: 'none',
-                  borderRadius: 6,
-                  color: '#fff',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  fontWeight: 700
-                }}
-              >
-                새 타일 추가
+        {/* Right Panel (Layers, Props, Global Actions) */}
+        <div className="panel-base" style={{
+          width: 340, flex: '0 0 340px', minWidth: 340,
+          borderRadius: 0, borderTop: 'none', borderBottom: 'none', borderRight: 'none',
+          padding: 0, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-panel)'
+        }}>
+          {/* Top Global Actions */}
+          <div style={{ padding: 16, borderBottom: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button key="btn-undo" onClick={undo} disabled={!canUndo} title={`${t.undo} (Ctrl+Z)`} className="btn-base" style={{ flex: 1, padding: '8px', backgroundColor: canUndo ? 'var(--bg-panel-hover)' : 'transparent', color: canUndo ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                <Undo2 size={16} /> {t.undo}
+              </button>
+              <button key="btn-redo" onClick={redo} disabled={!canRedo} title={`${t.redo} (Ctrl+Y)`} className="btn-base" style={{ flex: 1, padding: '8px', backgroundColor: canRedo ? 'var(--bg-panel-hover)' : 'transparent', color: canRedo ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                <Redo2 size={16} /> {t.redo}
               </button>
             </div>
-            <button
-              onClick={resetTileCatalog}
-              style={{
-                marginTop: 10,
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#333',
-                border: '1px solid #444',
-                borderRadius: 6,
-                color: '#ddd',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600
-              }}
-            >
-              타일 설정 초기화
+
+            <button key="btn-playtest" onClick={() => setIsPlayingTest(true)} className="btn-base" style={{ width: '100%', padding: '8px', backgroundColor: 'var(--accent-green)', color: '#000', fontWeight: 'bold' }}>
+              <Play size={16} fill="#000" /> 플레이 테스트
             </button>
-            <div style={{ marginTop: 8, fontSize: 10, color: '#666', lineHeight: 1.4 }}>
-              설정은 브라우저(localStorage)에 저장됩니다.
-            </div>
+
+            {hasChanges && (
+              <div style={{ padding: 8, backgroundColor: 'rgba(248, 113, 113, 0.1)', borderRadius: 'var(--border-radius-sm)', fontSize: 11, color: 'var(--accent-red)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <AlertTriangle size={14} /> {t.unsavedChangesIndicator}
+              </div>
+            )}
           </div>
 
-          {/* Object Palette */}
-          <ObjectPalette
-            selectedObject={selectedObject}
-            onSelectObject={handleSelectObject}
-            t={t}
-          />
+          <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+            {/* Properties / Tag Editor */}
+            {selectedObjectData && (
+              <div className="animate-fade-in" style={{ marginBottom: 16 }}>
+                <TagEditor
+                  object={selectedObjectData}
+                  onUpdate={handleUpdateObjectProperties}
+                  onClose={() => setSelectedObjectInstance(null)}
+                />
+              </div>
+            )}
 
-          {/* Unsaved indicator */}
-          {hasChanges && (
-            <div style={{
-              marginTop: 16,
-              padding: 10,
-              backgroundColor: '#4a3520',
-              borderRadius: 6,
-              fontSize: 11,
-              color: '#ffaa00',
-              textAlign: 'center'
-            }}>
-              ⚠️ {t.unsavedChangesIndicator}
+            {/* Layers Area */}
+            <div style={{ fontSize: 12, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border-light)' }}>
+              <Layers size={14} /> 레이어 관리
             </div>
-          )}
 
-          {/* Keyboard shortcuts hint */}
-          <div style={{
-            marginTop: 16,
-            padding: 10,
-            backgroundColor: '#252530',
-            borderRadius: 6,
-            fontSize: 10,
-            color: '#666'
-          }}>
-            <div style={{ marginBottom: 4, color: '#888' }}>💡 단축키:</div>
-            <div>• 1: 타일 모드 (길게: 휠 메뉴)</div>
-            <div>• 2: 오브젝트 모드 (길게: 휠 메뉴)</div>
-            <div>• Ctrl+Z/Y: 실행취소/다시실행</div>
+            <div className="animate-fade-in">
+              <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
+                <button key="btn-layer-tile" onClick={() => {
+                  const id = `layer_${Date.now()}`
+                  const newLayers = [...roomDetail.layers, { id, name: `타일 레이어 ${roomDetail.layers.length}`, type: 'tile' as const, visible: true, opacity: 1, tiles: generateDefaultRoomDetail(room).layers[0].tiles }]
+                  setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                  setActiveLayerId(id)
+                  setHasChanges(true)
+                }} className="btn-base btn-secondary" style={{ flex: 1, padding: '8px', fontSize: 12 }}>
+                  <Plus size={14} /> 타일
+                </button>
+                <button key="btn-layer-object" onClick={() => {
+                  const id = `layer_${Date.now()}`
+                  const newLayers = [...roomDetail.layers, { id, name: `오브젝트 레이어 ${roomDetail.layers.length}`, type: 'object' as const, visible: true, opacity: 1, objects: [] }]
+                  setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                  setActiveLayerId(id)
+                  setHasChanges(true)
+                }} className="btn-base btn-secondary" style={{ flex: 1, padding: '8px', fontSize: 12 }}>
+                  <Plus size={14} /> 오브젝트
+                </button>
+                <button key="btn-layer-image" onClick={() => {
+                  const id = `layer_${Date.now()}`
+                  const newLayers = [...roomDetail.layers, { id, name: `이미지 레이어 ${roomDetail.layers.length}`, type: 'image' as const, visible: true, opacity: 0.5, imageUrl: '' }]
+                  setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                  setActiveLayerId(id)
+                  setHasChanges(true)
+                }} className="btn-base btn-secondary" style={{ flex: 1, padding: '8px', fontSize: 12 }}>
+                  <Plus size={14} /> 이미지
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {roomDetail.layers.slice().reverse().map((layer) => (
+                  <div key={layer.id} onClick={() => setActiveLayerId(layer.id)} style={{ padding: 12, backgroundColor: activeLayerId === layer.id ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255,255,255,0.03)', border: activeLayerId === layer.id ? '1px solid var(--accent-blue)' : '1px solid var(--border-light)', borderRadius: 'var(--border-radius-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: layer.type === 'tile' ? 'var(--accent-green)' : 'var(--accent-indigo)' }} title={layer.type} />
+                    <div style={{ flex: 1, fontSize: 13, color: '#fff' }}>{layer.name}</div>
+                    <button onClick={(e) => {
+                      e.stopPropagation()
+                      const newLayers = roomDetail.layers.map(l => l.id === layer.id ? { ...l, visible: !l.visible } : l)
+                      setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                      setHasChanges(true)
+                    }} className="btn-base" style={{ padding: 4, background: 'transparent' }}>
+                      <span style={{ opacity: layer.visible ? 1 : 0.4 }}>👁️</span>
+                    </button>
+                    <button onClick={(e) => {
+                      e.stopPropagation()
+                      if (roomDetail.layers.length <= 1) return alert('최소 1개의 레이어가 필요합니다.')
+                      if (confirm(`'${layer.name}' 레이어를 삭제할까요?`)) {
+                        const newLayers = roomDetail.layers.filter(l => l.id !== layer.id)
+                        setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                        if (activeLayerId === layer.id) setActiveLayerId(newLayers[newLayers.length - 1].id)
+                        setHasChanges(true)
+                      }
+                    }} className="btn-base" style={{ padding: 4, color: 'var(--accent-red)', background: 'transparent' }}>
+                      <span style={{ fontSize: 12 }}>❌</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {(() => {
+                const activeLayer = roomDetail.layers.find(l => l.id === activeLayerId)
+                if (!activeLayer) return null
+                return (
+                  <div style={{ marginTop: 16, borderTop: '1px solid var(--border-light)', paddingTop: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 12 }}>{activeLayer.name} 속성</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>불투명도</span>
+                      <input type="range" min="0" max="1" step="0.1" value={activeLayer.opacity} onChange={(e) => {
+                        const newLayers = roomDetail.layers.map(l => l.id === activeLayer.id ? { ...l, opacity: parseFloat(e.target.value) } : l)
+                        setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                        setHasChanges(true)
+                      }} style={{ flex: 1 }} />
+                      <span style={{ fontSize: 11 }}>{Math.round(activeLayer.opacity * 100)}%</span>
+                    </div>
+                    {activeLayer.type === 'image' && (
+                      <div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>이미지 URL (또는 Data URI)</div>
+                        <input type="text" className="input-base" style={{ width: '100%', fontSize: 11, padding: '6px 8px' }} value={activeLayer.imageUrl || ''} onChange={(e) => {
+                          const newLayers = roomDetail.layers.map(l => l.id === activeLayer.id ? { ...l, imageUrl: e.target.value } : l)
+                          setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                          setHasChanges(true)
+                        }} placeholder="https://..." />
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* Navigation Guide (Mini-map) */}
+              {mapData && <RoomNavigator mapData={mapData} currentRoom={room} connections={connections} />}
+            </div>
           </div>
         </div>
       </div>
@@ -850,6 +742,10 @@ export function RoomEditor({ room, zone, onBack, onSave, t, tileCatalog }: RoomE
         onClose={() => setShowObjectWheel(false)}
         title="오브젝트"
       />
+
+      {isPlayingTest && (
+        <PlayTestMode roomDetail={roomDetail} onClose={() => setIsPlayingTest(false)} tileColors={tileColorMap as any} />
+      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Translations } from '../../i18n/translations'
 import { Room, Zone } from '../../types/map'
+import { ArrowLeft, RotateCcw, Save } from 'lucide-react'
 
 interface RoomToolbarProps {
   room: Room
@@ -13,55 +14,45 @@ interface RoomToolbarProps {
 
 export function RoomToolbar({ room, zone, onBack, onSave, onReset, t }: RoomToolbarProps) {
   return (
-    <div style={{
-      height: 50,
-      backgroundColor: '#1a1a24',
-      borderBottom: '1px solid #333',
+    <div className="panel-base" style={{
+      height: 56,
+      borderRadius: 0,
+      borderTop: 'none', borderLeft: 'none', borderRight: 'none',
       display: 'flex',
       alignItems: 'center',
       padding: '0 16px',
-      gap: 12
+      gap: 16,
+      zIndex: 'var(--z-panel)'
     }}>
       {/* Back Button */}
       <button
         onClick={onBack}
-        style={{
-          padding: '8px 16px',
-          backgroundColor: '#333',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 6,
-          cursor: 'pointer',
-          fontSize: 13,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6
-        }}
+        className="btn-base btn-secondary"
       >
-        <span>←</span>
+        <ArrowLeft size={16} />
         {t.backToWorldMap}
       </button>
 
       {/* Divider */}
-      <div style={{ width: 1, height: 30, backgroundColor: '#333' }} />
+      <div style={{ width: 1, height: 24, backgroundColor: 'var(--border-light)' }} />
 
       {/* Room Info */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 10
+        gap: 12
       }}>
         <div style={{
           width: 16,
           height: 16,
           borderRadius: 4,
-          backgroundColor: zone?.color || '#555'
+          backgroundColor: zone?.color || '#555',
+          boxShadow: 'var(--shadow-sm)'
         }} />
-        <span style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.3px' }}>
           {room.name || `${t.room} ${room.id}`}
         </span>
-        <span style={{ fontSize: 12, color: '#888' }}>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
           ({room.w * 10} × {room.h * 6} {t.tiles})
         </span>
       </div>
@@ -70,49 +61,24 @@ export function RoomToolbar({ room, zone, onBack, onSave, onReset, t }: RoomTool
       <div style={{ flex: 1 }} />
 
       {/* Actions */}
-      <button
-        onClick={onReset}
-        style={{
-          padding: '8px 16px',
-          backgroundColor: 'transparent',
-          color: '#ff6b6b',
-          border: '1px solid #8b0000',
-          borderRadius: 6,
-          cursor: 'pointer',
-          fontSize: 13,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6
-        }}
-      >
-        <span>🔄</span>
-        {t.reset}
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button
+          onClick={onReset}
+          className="btn-base btn-danger"
+          style={{ padding: '8px 16px' }}
+        >
+          <RotateCcw size={16} />
+          {t.reset}
+        </button>
 
-      <button
-        onClick={onSave}
-        style={{
-          padding: '8px 16px',
-          backgroundColor: '#4CAF50',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 6,
-          cursor: 'pointer',
-          fontSize: 13,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6
-        }}
-      >
-        <span>💾</span>
-        {t.save}
-      </button>
+        <button
+          onClick={onSave}
+          className="btn-base btn-primary"
+        >
+          <Save size={16} />
+          {t.save}
+        </button>
+      </div>
     </div>
   )
 }
-
-
-
-

@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { Translations } from '../i18n/translations'
+import { Settings, X, Sliders, Bot, Loader2, Lightbulb, Dices, Rocket } from 'lucide-react'
 
 export interface GenerateParams {
   seed: number | null
@@ -61,66 +62,59 @@ export function ParamPanel({ onGenerate, onGenerateFromPrompt, loading, collapse
     return (
       <button
         onClick={onToggle}
+        className="panel-base"
         style={{
           position: 'absolute',
-          top: 10,
-          left: 10,
+          top: 70, // Below toolbar
+          left: 16,
           padding: '8px 12px',
-          backgroundColor: '#252530',
-          border: '1px solid #444',
-          borderRadius: 6,
-          color: '#fff',
+          color: 'var(--text-main)',
           cursor: 'pointer',
           fontSize: 13,
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          zIndex: 100
+          zIndex: 'var(--z-panel)',
+          border: '1px solid var(--border-light)'
         }}
       >
-        <span>⚙️</span>
+        <Settings size={16} color="var(--accent-blue)" />
         <span>{t.parameters}</span>
       </button>
     )
   }
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: 10,
-      left: 10,
-      width: 280,
-      backgroundColor: 'rgba(26, 26, 36, 0.95)',
-      border: '1px solid #444',
-      borderRadius: 8,
-      padding: 16,
-      zIndex: 100,
-      backdropFilter: 'blur(10px)'
-    }}>
+    <div
+      className="panel-base animate-slide-in-left"
+      style={{
+        position: 'absolute',
+        top: 70, // Below toolbar
+        left: 16,
+        width: 300,
+        padding: 20,
+        zIndex: 'var(--z-panel)'
+      }}
+    >
       {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
         paddingBottom: 12,
-        borderBottom: '1px solid #333'
+        borderBottom: '1px solid var(--border-light)'
       }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>
-          ⚙️ {t.parameters}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: 'var(--text-main)' }}>
+          <Settings size={18} color="var(--accent-blue)" />
+          {t.parameters}
+        </div>
         <button
           onClick={onToggle}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#888',
-            cursor: 'pointer',
-            fontSize: 18,
-            padding: 4
-          }}
+          className="btn-icon"
+          style={{ background: 'none', border: 'none', padding: 4 }}
         >
-          ×
+          <X size={18} />
         </button>
       </div>
 
@@ -129,8 +123,8 @@ export function ParamPanel({ onGenerate, onGenerateFromPrompt, loading, collapse
         <div style={{
           display: 'flex',
           gap: 4,
-          marginBottom: 16,
-          backgroundColor: '#1a1a20',
+          marginBottom: 20,
+          backgroundColor: 'rgba(0,0,0,0.3)',
           borderRadius: 6,
           padding: 4
         }}>
@@ -139,59 +133,65 @@ export function ParamPanel({ onGenerate, onGenerateFromPrompt, loading, collapse
             style={{
               flex: 1,
               padding: '8px',
-              backgroundColor: generateMode === 'params' ? '#333' : 'transparent',
-              border: 'none',
+              backgroundColor: generateMode === 'params' ? 'var(--bg-panel-active)' : 'transparent',
+              border: generateMode === 'params' ? '1px solid var(--border-light)' : 'none',
               borderRadius: 4,
-              color: generateMode === 'params' ? '#fff' : '#888',
+              color: generateMode === 'params' ? 'var(--text-main)' : 'var(--text-muted)',
               cursor: 'pointer',
               fontSize: 12,
-              fontWeight: 500
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              transition: 'all 0.2s'
             }}
           >
-            📊 파라미터
+            <Sliders size={14} /> 파라미터
           </button>
           <button
             onClick={() => setGenerateMode('ai')}
             style={{
               flex: 1,
               padding: '8px',
-              backgroundColor: generateMode === 'ai' ? '#7c3aed' : 'transparent',
-              border: 'none',
+              backgroundColor: generateMode === 'ai' ? 'var(--accent-indigo)' : 'transparent',
+              border: generateMode === 'ai' ? '1px solid var(--accent-indigo)' : 'none',
               borderRadius: 4,
-              color: generateMode === 'ai' ? '#fff' : '#888',
+              color: generateMode === 'ai' ? '#fff' : 'var(--text-muted)',
               cursor: 'pointer',
               fontSize: 12,
-              fontWeight: 500
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              transition: 'all 0.2s'
             }}
           >
-            🤖 AI 프롬프트
+            <Bot size={14} /> AI 프롬프트
           </button>
         </div>
       )}
 
       {/* AI Prompt Mode */}
       {generateMode === 'ai' && onGenerateFromPrompt ? (
-        <>
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
+        <div className="animate-fade-in">
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
               {t.aiPrompt}
             </label>
             <textarea
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
               placeholder={t.aiPromptPlaceholder}
+              className="input-base"
               style={{
                 width: '100%',
-                minHeight: 100,
-                padding: '10px 12px',
-                backgroundColor: '#252530',
-                border: '1px solid #444',
-                borderRadius: 4,
-                color: '#fff',
-                fontSize: 13,
-                marginTop: 6,
+                minHeight: 120,
+                marginTop: 8,
                 resize: 'vertical',
-                lineHeight: 1.5
+                lineHeight: 1.5,
+                background: 'rgba(0,0,0,0.2)'
               }}
             />
           </div>
@@ -200,30 +200,23 @@ export function ParamPanel({ onGenerate, onGenerateFromPrompt, loading, collapse
           <button
             onClick={handleGenerateFromPrompt}
             disabled={loading || !aiPrompt.trim()}
+            className="btn-base"
             style={{
               width: '100%',
               padding: '12px',
-              backgroundColor: loading ? '#333' : !aiPrompt.trim() ? '#444' : '#7c3aed',
-              border: 'none',
-              borderRadius: 6,
-              color: '#fff',
-              cursor: loading || !aiPrompt.trim() ? 'not-allowed' : 'pointer',
-              fontSize: 14,
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8
+              backgroundColor: loading ? 'var(--bg-panel)' : (!aiPrompt.trim() ? 'var(--bg-panel-hover)' : 'var(--accent-indigo)'),
+              color: loading || !aiPrompt.trim() ? 'var(--text-muted)' : '#fff',
+              fontSize: 14
             }}
           >
             {loading ? (
               <>
-                <span style={{ animation: 'spin 1s linear infinite' }}>⏳</span>
+                <Loader2 size={16} className="animate-spin" />
                 {t.aiGenerating}
               </>
             ) : (
               <>
-                <span>🤖</span>
+                <Bot size={16} />
                 {t.generateFromPrompt}
               </>
             )}
@@ -231,198 +224,169 @@ export function ParamPanel({ onGenerate, onGenerateFromPrompt, loading, collapse
 
           {/* AI Tips */}
           <div style={{
-            marginTop: 12,
-            padding: 10,
-            backgroundColor: '#1a1a20',
-            borderRadius: 4,
+            marginTop: 16,
+            padding: 12,
+            backgroundColor: 'rgba(255,255,255,0.03)',
+            borderRadius: 'var(--border-radius-md)',
             fontSize: 11,
-            color: '#666',
+            color: 'var(--text-muted)',
             lineHeight: 1.6
           }}>
-            💡 예시:<br/>
-            • "고층 건물이 있는 사이버펑크 도시"<br/>
-            • "어두운 미로 같은 던전"<br/>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-blue)', marginBottom: 4 }}>
+              <Lightbulb size={14} /> 예시:
+            </div>
+            • "고층 건물이 있는 사이버펑크 도시"<br />
+            • "어두운 미로 같은 던전"<br />
             • "넓은 숲과 자연 환경"
           </div>
-        </>
+        </div>
       ) : (
-        <>
+        <div className="animate-fade-in">
           {/* Seed Input */}
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
-          {t.seedOptional}
-        </label>
-        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-          <input
-            type="number"
-            value={seed}
-            onChange={(e) => setSeed(e.target.value)}
-            placeholder={t.random}
-            style={{
-              flex: 1,
-              padding: '8px 12px',
-              backgroundColor: '#252530',
-              border: '1px solid #444',
-              borderRadius: 4,
-              color: '#fff',
-              fontSize: 13
-            }}
-          />
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
+              {t.seedOptional}
+            </label>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <input
+                type="number"
+                value={seed}
+                onChange={(e) => setSeed(e.target.value)}
+                placeholder={t.random}
+                className="input-base"
+                style={{ flex: 1 }}
+              />
+              <button
+                onClick={handleRandomSeed}
+                className="btn-base btn-secondary"
+                title={t.random}
+              >
+                <Dices size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Zone Count */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
+              {t.zoneCount}: <span style={{ color: 'var(--text-main)' }}>{zoneCount}</span>
+            </label>
+            <input
+              type="range"
+              min={2}
+              max={6}
+              value={zoneCount}
+              onChange={(e) => setZoneCount(parseInt(e.target.value))}
+              style={{ width: '100%', marginTop: 8 }}
+            />
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 10,
+              color: 'var(--text-muted)',
+              marginTop: 4
+            }}>
+              <span>2</span>
+              <span>6</span>
+            </div>
+          </div>
+
+          {/* Zone Size */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
+              {t.zoneSize}
+            </label>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              {(['small', 'medium', 'large'] as const).map(size => (
+                <button
+                  key={size}
+                  onClick={() => setZoneSize(size)}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    backgroundColor: zoneSize === size ? 'var(--accent-blue)' : 'var(--bg-panel-hover)',
+                    border: '1px solid',
+                    borderColor: zoneSize === size ? 'var(--accent-blue)' : 'var(--border-light)',
+                    borderRadius: 4,
+                    color: zoneSize === size ? '#000' : 'var(--text-main)',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: zoneSize === size ? 600 : 400,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {sizeLabels[size]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Gate Density */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
+              {t.gateDensity}
+            </label>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              {(['low', 'medium', 'high'] as const).map(density => (
+                <button
+                  key={density}
+                  onClick={() => setGateDensity(density)}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    backgroundColor: gateDensity === density ? 'var(--accent-indigo)' : 'var(--bg-panel-hover)',
+                    border: '1px solid',
+                    borderColor: gateDensity === density ? 'var(--accent-indigo)' : 'var(--border-light)',
+                    borderRadius: 4,
+                    color: gateDensity === density ? '#fff' : 'var(--text-main)',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: gateDensity === density ? 600 : 400,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {densityLabels[density]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Generate Button */}
           <button
-            onClick={handleRandomSeed}
-            style={{
-              padding: '8px 12px',
-              backgroundColor: '#333',
-              border: '1px solid #444',
-              borderRadius: 4,
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: 13
-            }}
-            title={t.random}
+            onClick={handleGenerate}
+            disabled={loading}
+            className="btn-base btn-primary"
+            style={{ width: '100%', padding: '12px', fontSize: 14 }}
           >
-            🎲
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                {t.generating}
+              </>
+            ) : (
+              <>
+                <Rocket size={16} />
+                {t.generateMap}
+              </>
+            )}
           </button>
-        </div>
-      </div>
-
-      {/* Zone Count */}
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
-          {t.zoneCount}: {zoneCount}
-        </label>
-        <input
-          type="range"
-          min={2}
-          max={6}
-          value={zoneCount}
-          onChange={(e) => setZoneCount(parseInt(e.target.value))}
-          style={{
-            width: '100%',
-            marginTop: 6,
-            accentColor: '#4CAF50'
-          }}
-        />
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          fontSize: 10,
-          color: '#555',
-          marginTop: 4
-        }}>
-          <span>2</span>
-          <span>6</span>
-        </div>
-      </div>
-
-      {/* Zone Size */}
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
-          {t.zoneSize}
-        </label>
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          marginTop: 6
-        }}>
-          {(['small', 'medium', 'large'] as const).map(size => (
-            <button
-              key={size}
-              onClick={() => setZoneSize(size)}
-              style={{
-                flex: 1,
-                padding: '8px',
-                backgroundColor: zoneSize === size ? '#4CAF50' : '#252530',
-                border: `1px solid ${zoneSize === size ? '#4CAF50' : '#444'}`,
-                borderRadius: 4,
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: 12
-              }}
-            >
-              {sizeLabels[size]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Gate Density */}
-      <div style={{ marginBottom: 20 }}>
-        <label style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
-          {t.gateDensity}
-        </label>
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          marginTop: 6
-        }}>
-          {(['low', 'medium', 'high'] as const).map(density => (
-            <button
-              key={density}
-              onClick={() => setGateDensity(density)}
-              style={{
-                flex: 1,
-                padding: '8px',
-                backgroundColor: gateDensity === density ? '#2196F3' : '#252530',
-                border: `1px solid ${gateDensity === density ? '#2196F3' : '#444'}`,
-                borderRadius: 4,
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: 12
-              }}
-            >
-              {densityLabels[density]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Generate Button */}
-      <button
-        onClick={handleGenerate}
-        disabled={loading}
-        style={{
-          width: '100%',
-          padding: '12px',
-          backgroundColor: loading ? '#333' : '#4CAF50',
-          border: 'none',
-          borderRadius: 6,
-          color: '#fff',
-          cursor: loading ? 'wait' : 'pointer',
-          fontSize: 14,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8
-        }}
-      >
-        {loading ? (
-          <>
-            <span style={{ animation: 'spin 1s linear infinite' }}>⏳</span>
-            {t.generating}
-          </>
-        ) : (
-          <>
-            <span>🚀</span>
-            {t.generateMap}
-          </>
-        )}
-      </button>
 
           {/* Info */}
           <div style={{
-            marginTop: 12,
-            padding: 10,
-            backgroundColor: '#1a1a20',
-            borderRadius: 4,
+            marginTop: 16,
+            padding: 12,
+            backgroundColor: 'rgba(255,255,255,0.03)',
+            borderRadius: 'var(--border-radius-md)',
             fontSize: 11,
-            color: '#666',
+            color: 'var(--text-muted)',
             lineHeight: 1.5
           }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-blue)', marginBottom: 4 }}>
+              <Lightbulb size={14} /> Tip:
+            </div>
             {t.tipSeed}
           </div>
-        </>
+        </div>
       )}
     </div>
   )

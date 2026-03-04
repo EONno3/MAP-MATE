@@ -29,26 +29,35 @@ export function resizeRoomDetail(
   const w = Math.max(1, Math.floor(nextTileWidth))
   const h = Math.max(1, Math.floor(nextTileHeight))
 
-  const nextTiles = createTiles(w, h, fill)
-
   const copyW = Math.min(w, detail.tileWidth)
   const copyH = Math.min(h, detail.tileHeight)
 
-  for (let y = 0; y < copyH; y++) {
-    const row = detail.tiles[y] ?? []
-    for (let x = 0; x < copyW; x++) {
-      nextTiles[y][x] = (row[x] ?? fill) as TileType
+  const nextLayers = detail.layers.map(layer => {
+    if (layer.type === 'tile') {
+      const nextTiles = createTiles(w, h, fill)
+      if (layer.tiles) {
+        for (let y = 0; y < copyH; y++) {
+          const row = layer.tiles[y] ?? []
+          for (let x = 0; x < copyW; x++) {
+            nextTiles[y][x] = (row[x] ?? fill) as TileType
+          }
+        }
+      }
+      return { ...layer, tiles: nextTiles }
+    } else if (layer.type === 'object') {
+      return {
+        ...layer,
+        objects: (layer.objects || []).filter((obj) => obj.x >= 0 && obj.y >= 0 && obj.x < w && obj.y < h)
+      }
     }
-  }
-
-  const nextObjects = detail.objects.filter((obj) => obj.x >= 0 && obj.y >= 0 && obj.x < w && obj.y < h)
+    return layer
+  })
 
   return {
     ...detail,
     tileWidth: w,
     tileHeight: h,
-    tiles: nextTiles,
-    objects: nextObjects,
+    layers: nextLayers,
   }
 }
 

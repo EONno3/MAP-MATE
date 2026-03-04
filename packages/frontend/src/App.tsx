@@ -6,11 +6,14 @@ import { ParamPanel, GenerateParams } from './components/ParamPanel'
 import { RoomEditor } from './components/room-editor'
 import { ZonePanel } from './components/ZonePanel'
 import { useMapState } from './hooks/useMapState'
+import { getMapInteractionNotice, getMapInteractionState } from './lib/interactionState'
 import { translations, Translations } from './i18n/translations'
 import { Room, EditorTool } from './types/map'
 import { parseImportedMapJson } from './lib/mapSerialization'
 import { buildUnityExportV1 } from './lib/unityExportV1'
 import { useTileCatalog } from './hooks/useTileCatalog'
+import { HelpModal } from './components/HelpModal'
+import { Loader2, Map, Upload, Edit2, Copy, Trash2, X } from 'lucide-react'
 
 type EditMode = 'world' | 'room'
 
@@ -21,11 +24,11 @@ export default function App() {
   const [editMode, setEditMode] = useState<EditMode>('world')
   const [editingRoom, setEditingRoom] = useState<Room | null>(null)
   const [currentTool, setCurrentTool] = useState<EditorTool>('select')
-  
+
   // 언어 토글 제거: UI/타일명은 한국어 기준으로 고정
   const t: Translations = translations.ko
   const tileCatalog = useTileCatalog({ t })
-  
+
   const {
     mapData,
     loading,
@@ -68,6 +71,9 @@ export default function App() {
     copySelectedRooms,
     pasteRooms
   } = useMapState()
+  const interaction = getMapInteractionState({ mapData, loading, error })
+  const interactionNotice = getMapInteractionNotice({ interaction, errorMessage: error, t })
+  const canEditMap = interaction.canEdit
 
   // Fetch map on initial load
   useEffect(() => {
@@ -77,6 +83,7 @@ export default function App() {
   // 전역 키보드 단축키
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!canEditMap) return
       const target = e.target as HTMLElement
       // 상세맵 편집 모드에서는 다른 단축키 사용
       if (editMode === 'room') return
@@ -158,12 +165,15 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [editMode, undo, redo, copySelectedRooms, pasteRooms, selectAllRooms, clearSelection, deleteSelectedRooms, selectedRoomIds, selectedRoomId])
+  }, [canEditMap, editMode, undo, redo, copySelectedRooms, pasteRooms, selectAllRooms, clearSelection, deleteSelectedRooms, selectedRoomIds, selectedRoomId])
 
   // Handle generate from toolbar (random)
   const handleGenerate = useCallback(() => {
     const seed = Math.floor(Math.random() * 100000)
     fetchMap({ seed })
+  }, [fetchMap])
+  const handleRetryFetch = useCallback(() => {
+    fetchMap()
   }, [fetchMap])
 
   // Handle generate from param panel (with params)
@@ -273,7 +283,7 @@ export default function App() {
   // Get selected room object
   const selectedRoom = mapData?.rooms.find(r => r.id === selectedRoomId) || null
   const selectedZone = selectedRoom ? mapData?.zones[selectedRoom.zone_id] || null : null
-  
+
   // Get editing room zone
   const editingZone = editingRoom ? mapData?.zones[editingRoom.zone_id] || null : null
 
@@ -312,10 +322,12 @@ export default function App() {
             background: #555;
           }
         `}</style>
-        
+
         <RoomEditor
           room={editingRoom}
           zone={editingZone}
+          mapData={mapData}
+          connections={connections}
           onBack={exitRoomEditor}
           onSave={handleSaveRoom}
           t={t}
@@ -378,8 +390,11 @@ export default function App() {
         onGenerate={handleGenerate}
         onExport={handleExport}
         onExportUnity={handleExportUnity}
+        onExportImage={() => window.dispatchEvent(new Event('export-map-image'))}
         onImport={handleImport}
         loading={loading}
+        canGenerate={interaction.canGenerate}
+        interactive={canEditMap}
         roomCount={mapData?.rooms.length || 0}
         t={t}
         buildId={BUILD_ID}
@@ -399,37 +414,6 @@ export default function App() {
       }}>
         {/* Canvas Area */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          {error && (
-            <div style={{
-              padding: '12px 20px',
-              backgroundColor: '#2d1a1a',
-              borderBottom: '1px solid #4a2020',
-              color: '#ff6b6b',
-              fontSize: 13,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10
-            }}>
-              <span>⚠️</span>
-              <span>{error}</span>
-              <button
-                onClick={handleGenerate}
-                style={{
-                  marginLeft: 'auto',
-                  padding: '4px 12px',
-                  backgroundColor: '#4a2020',
-                  border: 'none',
-                  borderRadius: 4,
-                  color: '#ff6b6b',
-                  cursor: 'pointer',
-                  fontSize: 12
-                }}
-              >
-                {t.retry}
-              </button>
-            </div>
-          )}
-
           {/* Parameter Panel */}
           <ParamPanel
             onGenerate={handleGenerateWithParams}
@@ -439,7 +423,7 @@ export default function App() {
             onToggle={() => setParamPanelOpen(!paramPanelOpen)}
             t={t}
           />
-          
+
           <MapCanvas
             mapData={mapData}
             connections={connections}
@@ -447,6 +431,7 @@ export default function App() {
             selectedRoomIds={selectedRoomIds}
             hoveredRoomId={hoveredRoomId}
             selectedConnection={selectedConnection}
+            interactive={canEditMap}
             onSelectRoom={setSelectedRoom}
             onToggleRoomSelection={toggleRoomSelection}
             onSetSelectedRooms={setSelectedRooms}
@@ -463,75 +448,164 @@ export default function App() {
             mapVersion={mapVersion}
             t={t}
           />
+
+          {/* Contextual Quick Actions */}
+          {canEditMap && (selectedRoomId !== null || selectedRoomIds.length > 0) && (
+            <div className="panel-base animate-slide-up" style={{
+              position: 'absolute',
+              bottom: 32,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 16px',
+              borderRadius: '999px',
+              boxShadow: 'var(--shadow-lg)',
+              border: '1px solid var(--border-light)'
+            }}>
+              <span style={{ fontSize: 13, color: 'var(--accent-blue)', fontWeight: 600, paddingRight: 8, borderRight: '1px solid var(--border-light)' }}>
+                {selectedRoomIds.length > 1 ? `${selectedRoomIds.length}개 선택됨` : '방 선택됨'}
+              </span>
+
+              {(selectedRoomId !== null && selectedRoomIds.length <= 1) && (
+                <button
+                  onClick={() => enterRoomEditor(selectedRoomId)}
+                  className="btn-base btn-primary"
+                  style={{ padding: '6px 16px', borderRadius: '999px', fontSize: 13, gap: 6 }}
+                >
+                  <Edit2 size={14} /> 편집
+                </button>
+              )}
+
+              <button
+                onClick={copySelectedRooms}
+                className="btn-base btn-secondary"
+                style={{ padding: '6px 16px', borderRadius: '999px', fontSize: 13, gap: 6 }}
+              >
+                <Copy size={14} /> 복사
+              </button>
+
+              <button
+                onClick={deleteSelectedRooms}
+                className="btn-base"
+                style={{ padding: '6px 16px', borderRadius: '999px', fontSize: 13, gap: 6, backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-red)' }}
+              >
+                <Trash2 size={14} /> 삭제
+              </button>
+
+              <div style={{ paddingLeft: 8, borderLeft: '1px solid var(--border-light)' }}>
+                <button
+                  onClick={clearSelection}
+                  className="btn-base"
+                  style={{ padding: '6px', borderRadius: '50%', color: 'var(--text-muted)' }}
+                  title="선택 해제 (Esc)"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
-        <Sidebar
-          selectedRoom={selectedRoom}
-          selectedRoomIds={selectedRoomIds}
-          zone={selectedZone}
-          zones={mapData?.zones || {}}
-          selectedConnection={selectedConnection}
-          connections={connections}
-          rooms={mapData?.rooms || []}
-          clipboard={clipboard}
-          onUpdateRoom={updateRoom}
-          onUpdateSelectedRooms={updateSelectedRooms}
-          onDeleteRoom={deleteRoom}
-          onDeleteSelectedRooms={deleteSelectedRooms}
-          onDeleteConnection={deleteConnection}
-          onUpdateConnection={updateConnection}
-          onEditDetail={enterRoomEditor}
-          onSplitRoom={splitRoom}
-          onCopySelectedRooms={copySelectedRooms}
-          onPasteRooms={pasteRooms}
-          t={t}
-        />
-
-        {/* Zone Management Panel */}
-        {mapData && (
-          <ZonePanel
-            zones={mapData.zones}
-            onAddZone={addZone}
-            onUpdateZone={updateZone}
-            onDeleteZone={deleteZone}
-            collapsed={!zonePanelOpen}
-            onToggle={() => setZonePanelOpen(!zonePanelOpen)}
+        <div style={{ pointerEvents: canEditMap ? 'auto' : 'none', opacity: canEditMap ? 1 : 0.55 }}>
+          <Sidebar
+            selectedRoom={selectedRoom}
+            selectedRoomIds={selectedRoomIds}
+            zone={selectedZone}
+            zones={mapData?.zones || {}}
+            selectedConnection={selectedConnection}
+            connections={connections}
+            rooms={mapData?.rooms || []}
+            clipboard={clipboard}
+            onUpdateRoom={updateRoom}
+            onUpdateSelectedRooms={updateSelectedRooms}
+            onDeleteRoom={deleteRoom}
+            onDeleteSelectedRooms={deleteSelectedRooms}
+            onDeleteConnection={deleteConnection}
+            onUpdateConnection={updateConnection}
+            onEditDetail={enterRoomEditor}
+            onSplitRoom={splitRoom}
+            onCopySelectedRooms={copySelectedRooms}
+            onPasteRooms={pasteRooms}
             t={t}
           />
-        )}
+
+          {/* Zone Management Panel */}
+          {mapData && (
+            <ZonePanel
+              zones={mapData.zones}
+              onAddZone={addZone}
+              onUpdateZone={updateZone}
+              onDeleteZone={deleteZone}
+              collapsed={!zonePanelOpen}
+              onToggle={() => setZonePanelOpen(!zonePanelOpen)}
+              t={t}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Loading Overlay */}
-      {loading && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000
-        }}>
-          <div style={{
-            fontSize: 48,
-            marginBottom: 20,
-            animation: 'spin 2s linear infinite'
+      {/* Interaction Overlay */}
+      {interactionNotice && (
+        <div
+          className="animate-fade-in"
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(13, 13, 18, 0.8)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000
           }}>
-            🗺️
+          {interaction.status === 'loading' ? (
+            <div style={{ color: 'var(--accent-blue)', marginBottom: 24 }}>
+              <Loader2 size={48} className="animate-spin" />
+            </div>
+          ) : (
+            <div style={{ color: 'var(--accent-indigo)', marginBottom: 20 }}>
+              <Map size={48} />
+            </div>
+          )}
+          <div style={{ color: 'var(--text-main)', fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px' }}>
+            {interactionNotice.title}
           </div>
-          <div style={{ color: '#fff', fontSize: 18, fontWeight: 600 }}>
-            {t.generating}
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 12, textAlign: 'center', maxWidth: 420, lineHeight: 1.5 }}>
+            {interactionNotice.description}
           </div>
-          <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>
-            {t.generatingDescription}
-          </div>
+          {interactionNotice.actionLabel && (
+            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+              <button
+                onClick={interactionNotice.action === 'retry' ? handleRetryFetch : handleGenerate}
+                disabled={!interaction.canGenerate}
+                className="btn-base btn-primary"
+                style={{ padding: '10px 24px', fontSize: 14 }}
+              >
+                {interactionNotice.actionLabel}
+              </button>
+              {interactionNotice.showImport && (
+                <button
+                  onClick={handleImport}
+                  disabled={loading}
+                  className="btn-base btn-secondary"
+                  style={{ padding: '10px 24px', fontSize: 14 }}
+                >
+                  <Upload size={16} />
+                  {t.importJson}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
+
+      {/* Modals */}
+      <HelpModal t={t} />
     </div>
   )
 }

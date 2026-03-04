@@ -1,5 +1,5 @@
 import type { Connection, MapData, Room, RoomDetail, TileType } from '../types/map'
-import { TILES_PER_CHUNK_X, TILES_PER_CHUNK_Y } from '../types/map'
+import { TILES_PER_CHUNK_X, TILES_PER_CHUNK_Y, UNITY_COMPONENT_MAP } from '../types/map'
 import { resizeRoomDetail } from './roomDetailResize'
 import { normalizeConnections } from './mapConnections'
 
@@ -23,6 +23,30 @@ export interface UnityDoorway {
   facing: UnityFacing
 }
 
+export interface UnityComponentExport {
+  type: string
+  properties?: Record<string, any>
+}
+
+export interface UnityEntityExport {
+  key: string
+  x: number
+  y: number
+  layer?: string
+  tag?: string
+  components?: UnityComponentExport[]
+  properties?: Record<string, unknown>
+}
+
+export interface UnityTilemapLayerExport {
+  name: string
+  sortingOrder: number
+  layer?: string
+  tag?: string
+  tilesEncoding: 'raw2d' | 'rle1d'
+  tiles: number[][] | Array<{ id: number; run: number }>
+}
+
 export interface UnityRoomExport {
   id: number
   zoneId: number
@@ -31,9 +55,9 @@ export interface UnityRoomExport {
   detail: {
     tileWidth: number
     tileHeight: number
-    tilesEncoding: 'raw2d' | 'rle1d'
-    tiles: number[][] | Array<{ id: number; run: number }>
-    objects: Array<{ key: string; x: number; y: number; properties?: Record<string, unknown> }>
+    gridSize: number
+    tileLayers: UnityTilemapLayerExport[]
+    objects: UnityEntityExport[]
   }
 }
 
@@ -91,7 +115,13 @@ function defaultRoomDetail(room: Room, tilesPerChunkX: number, tilesPerChunkY: n
     })
   )
 
-  return { roomId: room.id, tileWidth, tileHeight, tiles, objects: [] }
+  return {
+    roomId: room.id,
+    tileWidth,
+    tileHeight,
+    gridSize: 16,
+    layers: [{ id: 'base', name: 'Base', type: 'tile', visible: true, opacity: 1, tiles }]
+  }
 }
 
 function ensureDetailMatchesRoom(room: Room, tilesPerChunkX: number, tilesPerChunkY: number): RoomDetail {
@@ -104,22 +134,24 @@ function ensureDetailMatchesRoom(room: Room, tilesPerChunkX: number, tilesPerChu
   return resizeRoomDetail(detail, expectedW, expectedH, { fill: 'empty' })
 }
 
-function tilesToIdsRaw2d(detail: RoomDetail): number[][] {
-  return detail.tiles.map((row) => row.map((t) => TILE_TYPE_TO_ID[t] ?? 0))
+function tilesToIdsRaw2d(tiles: TileType[][]): number[][] {
+  return tiles.map((row) => row.map((t) => TILE_TYPE_TO_ID[t] ?? 0))
 }
 
-function tilesToIdsRle1d(detail: RoomDetail): Array<{ id: number; run: number }> {
+function tilesToIdsRle1d(tiles: TileType[][], w: number, h: number): Array<{ id: number; run: number }> {
   const flat: number[] = []
-  for (let y = 0; y < detail.tileHeight; y++) {
-    const row = detail.tiles[y] ?? []
-    for (let x = 0; x < detail.tileWidth; x++) {
+  for (let y = 0; y < h; y++) {
+    const row = tiles[y] ?? []
+    for (let x = 0; x < w; x++) {
       const t = (row[x] ?? 'empty') as TileType
       flat.push(TILE_TYPE_TO_ID[t] ?? 0)
     }
   }
 
   const out: Array<{ id: number; run: number }> = []
-  let cur = flat[0] ?? 0
+  if (flat.length === 0) return out
+
+  let cur = flat[0]
   let run = 0
   for (const v of flat) {
     if (v === cur) {
@@ -279,14 +311,64 @@ export function buildUnityExportV1(mapData: MapData, connections: Connection[], 
 
   const rooms: UnityRoomExport[] = mapData.rooms.map((room) => {
     const detail = ensureDetailMatchesRoom(room, tilesPerChunkX, tilesPerChunkY)
-
-    for (const obj of detail.objects) objectKeys.add(obj.type)
-
     const worldOrigin = roomWorldTileOrigin(room, tilesPerChunkX, tilesPerChunkY)
 
     const useRle = encodingMode === 'rle1d' || (encodingMode === 'auto' && detail.tileWidth * detail.tileHeight > 2000)
     const tilesEncoding: 'raw2d' | 'rle1d' = useRle ? 'rle1d' : 'raw2d'
-    const tiles = useRle ? tilesToIdsRle1d(detail) : tilesToIdsRaw2d(detail)
+
+    const tileLayers: UnityTilemapLayerExport[] = []
+    const exportedObjects: UnityEntityExport[] = []
+
+    let sortingOrder = 0
+    for (const layer of detail.layers) {
+      if (layer.type === 'tile' && layer.tiles) {
+        const tiles = useRle ? tilesToIdsRle1d(layer.tiles, detail.tileWidth, detail.tileHeight) : tilesToIdsRaw2d(layer.tiles)
+        tileLayers.push({
+          name: layer.name,
+          sortingOrder: sortingOrder++,
+          layer: 'Default',
+          tag: 'Untagged',
+          tilesEncoding,
+          tiles
+        })
+      } else if (layer.type === 'object' && layer.objects) {
+        for (const obj of layer.objects) {
+          objectKeys.add(obj.type)
+
+          let layerName = 'Default'
+          let unityTag = 'Untagged'
+          const components: UnityComponentExport[] = []
+
+          if (obj.tags && obj.tags.length > 0) {
+            for (const t of obj.tags) {
+              const mapping = UNITY_COMPONENT_MAP[t]
+              if (mapping) {
+                if (mapping.layer) layerName = mapping.layer
+                if (mapping.tag) unityTag = mapping.tag
+                if (mapping.components) {
+                  for (const c of mapping.components) {
+                    components.push({
+                      type: c.type,
+                      properties: { ...c.properties, ...(obj.tagData?.[t] || {}) }
+                    })
+                  }
+                }
+              }
+            }
+          }
+
+          exportedObjects.push({
+            key: obj.type,
+            x: obj.x,
+            y: obj.y,
+            layer: layerName,
+            tag: unityTag,
+            components,
+            properties: obj.properties // legacy
+          })
+        }
+      }
+    }
 
     return {
       id: room.id,
@@ -296,14 +378,9 @@ export function buildUnityExportV1(mapData: MapData, connections: Connection[], 
       detail: {
         tileWidth: detail.tileWidth,
         tileHeight: detail.tileHeight,
-        tilesEncoding,
-        tiles,
-        objects: detail.objects.map((o) => ({
-          key: o.type,
-          x: o.x,
-          y: o.y,
-          properties: o.properties,
-        })),
+        gridSize: detail.gridSize ?? 16,
+        tileLayers,
+        objects: exportedObjects,
       },
     }
   })

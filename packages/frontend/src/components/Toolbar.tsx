@@ -1,13 +1,31 @@
 import React from 'react'
 import { Translations } from '../i18n/translations'
 import { EditorTool } from '../types/map'
+import {
+  Map,
+  Loader2,
+  Dices,
+  Save,
+  Puzzle,
+  FolderOpen,
+  Undo2,
+  Redo2,
+  MousePointer2,
+  PenTool,
+  Link,
+  HelpCircle,
+  Image as ImageIcon
+} from 'lucide-react'
 
 interface ToolbarProps {
   onGenerate: () => void
   onExport: () => void
   onExportUnity: () => void
+  onExportImage?: () => void
   onImport: () => void
   loading: boolean
+  canGenerate?: boolean
+  interactive?: boolean
   roomCount: number
   t: Translations
   buildId?: string
@@ -21,12 +39,15 @@ interface ToolbarProps {
   onRedo?: () => void
 }
 
-export function Toolbar({ 
-  onGenerate, 
-  onExport, 
+export function Toolbar({
+  onGenerate,
+  onExport,
   onExportUnity,
-  onImport, 
-  loading, 
+  onExportImage,
+  onImport,
+  loading,
+  canGenerate = true,
+  interactive = true,
   roomCount,
   t,
   buildId,
@@ -37,233 +58,178 @@ export function Toolbar({
   onUndo,
   onRedo
 }: ToolbarProps) {
-  const toolButtonStyle = (tool: EditorTool) => ({
-    padding: '6px 10px',
-    backgroundColor: currentTool === tool ? '#4CAF50' : 'transparent',
-    border: currentTool === tool ? 'none' : '1px solid #444',
-    borderRadius: 4,
-    color: '#fff',
-    cursor: 'pointer',
-    fontSize: 12,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-    transition: 'all 0.2s'
-  })
+
+  const disableGenerate = loading || !canGenerate
+  const disableEditActions = !interactive
+  const disableExport = roomCount === 0 || disableEditActions
+  const disableImport = loading
+
   return (
-    <div style={{
-      height: 50,
-      backgroundColor: '#1a1a24',
-      borderBottom: '1px solid #333',
-      display: 'flex',
-      alignItems: 'center',
-      padding: '0 16px',
-      gap: 12
-    }}>
-      {/* Logo */}
-      <div style={{
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#fff',
-        marginRight: 20,
+    <div
+      className="panel-base"
+      style={{
+        height: 56,
+        borderRadius: 0,
+        borderTop: 'none',
+        borderLeft: 'none',
+        borderRight: 'none',
         display: 'flex',
         alignItems: 'center',
-        gap: 8
+        padding: '0 16px',
+        gap: 16,
+        zIndex: 'var(--z-panel)'
+      }}
+    >
+      {/* Logo */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        marginRight: 16
       }}>
-        <span style={{ fontSize: 24 }}>🗺️</span>
+        <Map size={28} color="var(--accent-blue)" />
         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-          <span>{t.appName}</span>
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.5px' }}>
+            {t.appName}
+          </span>
           {buildId && (
-            <span style={{ fontSize: 10, fontWeight: 500, color: '#8b8b9a' }}>
+            <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-muted)' }}>
               {buildId}
             </span>
           )}
         </div>
       </div>
 
-      {/* Divider */}
-      <div style={{ width: 1, height: 30, backgroundColor: '#333' }} />
+      <div style={{ width: 1, height: 24, backgroundColor: 'var(--border-light)' }} />
 
-      {/* Generate Button */}
+      {/* Action Buttons */}
       <button
         onClick={onGenerate}
-        disabled={loading}
-        style={{
-          padding: '8px 16px',
-          backgroundColor: loading ? '#333' : '#4CAF50',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 6,
-          cursor: loading ? 'wait' : 'pointer',
-          fontSize: 13,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          transition: 'background-color 0.2s'
-        }}
+        disabled={disableGenerate}
+        className="btn-base btn-primary"
       >
         {loading ? (
           <>
-            <span style={{ animation: 'spin 1s linear infinite' }}>⏳</span>
+            <Loader2 size={16} className="animate-spin" />
             {t.generating}
           </>
         ) : (
           <>
-            <span>🎲</span>
+            <Dices size={16} />
             {t.generate}
           </>
         )}
       </button>
 
-      {/* Export Button */}
-      <button
-        onClick={onExport}
-        disabled={roomCount === 0}
-        style={{
-          padding: '8px 16px',
-          backgroundColor: roomCount === 0 ? '#333' : '#2196F3',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 6,
-          cursor: roomCount === 0 ? 'not-allowed' : 'pointer',
-          fontSize: 13,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6
-        }}
-      >
-        <span>💾</span>
-        {t.exportJson}
-      </button>
-
-      {/* Export Unity Button */}
-      <button
-        onClick={onExportUnity}
-        disabled={roomCount === 0}
-        style={{
-          padding: '8px 16px',
-          backgroundColor: roomCount === 0 ? '#333' : '#0ea5e9',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 6,
-          cursor: roomCount === 0 ? 'not-allowed' : 'pointer',
-          fontSize: 13,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6
-        }}
-      >
-        <span>🧩</span>
-        {t.exportUnity}
-      </button>
-
-      {/* Import Button */}
       <button
         onClick={onImport}
-        style={{
-          padding: '8px 16px',
-          backgroundColor: '#7b1fa2',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 6,
-          cursor: 'pointer',
-          fontSize: 13,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6
-        }}
+        disabled={disableImport}
+        className="btn-base btn-secondary"
       >
-        <span>📂</span>
+        <FolderOpen size={16} />
         {t.importJson}
       </button>
 
-      {/* Divider */}
-      <div style={{ width: 1, height: 30, backgroundColor: '#333' }} />
+      <button
+        onClick={onExport}
+        disabled={disableExport}
+        className="btn-base btn-secondary"
+      >
+        <Save size={16} />
+        {t.exportJson}
+      </button>
+
+      <button
+        onClick={onExportUnity}
+        disabled={disableExport}
+        className="btn-base btn-secondary"
+      >
+        <Puzzle size={16} />
+        {t.exportUnity}
+      </button>
+
+      {onExportImage && (
+        <button
+          onClick={onExportImage}
+          disabled={disableExport}
+          className="btn-base btn-secondary"
+          title="이미지로 내보내기"
+        >
+          <ImageIcon size={16} />
+          이미지
+        </button>
+      )}
+
+      <div style={{ width: 1, height: 24, backgroundColor: 'var(--border-light)' }} />
 
       {/* Undo/Redo */}
       <div style={{ display: 'flex', gap: 4 }}>
         <button
           onClick={onUndo}
-          disabled={!canUndo}
+          disabled={!canUndo || disableEditActions}
+          className="btn-base btn-icon"
           title={`${t.undo} (Ctrl+Z)`}
-          style={{
-            padding: '6px 10px',
-            backgroundColor: canUndo ? '#555' : '#333',
-            color: canUndo ? '#fff' : '#666',
-            border: 'none',
-            borderRadius: 4,
-            cursor: canUndo ? 'pointer' : 'not-allowed',
-            fontSize: 14
-          }}
         >
-          ↩️
+          <Undo2 size={18} />
         </button>
         <button
           onClick={onRedo}
-          disabled={!canRedo}
+          disabled={!canRedo || disableEditActions}
+          className="btn-base btn-icon"
           title={`${t.redo} (Ctrl+Y)`}
-          style={{
-            padding: '6px 10px',
-            backgroundColor: canRedo ? '#555' : '#333',
-            color: canRedo ? '#fff' : '#666',
-            border: 'none',
-            borderRadius: 4,
-            cursor: canRedo ? 'pointer' : 'not-allowed',
-            fontSize: 14
-          }}
         >
-          ↪️
+          <Redo2 size={18} />
         </button>
       </div>
 
-      {/* Divider */}
-      <div style={{ width: 1, height: 30, backgroundColor: '#333' }} />
+      <div style={{ width: 1, height: 24, backgroundColor: 'var(--border-light)' }} />
 
       {/* Editor Tools */}
       {onToolChange && (
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={() => onToolChange('select')}
+            disabled={disableEditActions}
             title={t.toolSelect}
-            style={toolButtonStyle('select')}
+            className={`btn-base btn-icon ${currentTool === 'select' ? 'active' : ''}`}
+            style={{ padding: '6px 12px', gap: 6 }}
           >
-            <span>👆</span>
+            <MousePointer2 size={16} />
             {t.toolSelect}
           </button>
           <button
             onClick={() => onToolChange('draw')}
+            disabled={disableEditActions}
             title={t.toolDraw}
-            style={toolButtonStyle('draw')}
+            className={`btn-base btn-icon ${currentTool === 'draw' ? 'active' : ''}`}
+            style={{ padding: '6px 12px', gap: 6 }}
           >
-            <span>✏️</span>
+            <PenTool size={16} />
             {t.toolDraw}
           </button>
           <button
             onClick={() => onToolChange('connect')}
+            disabled={disableEditActions}
             title={t.toolConnect}
-            style={toolButtonStyle('connect')}
+            className={`btn-base btn-icon ${currentTool === 'connect' ? 'active' : ''}`}
+            style={{ padding: '6px 12px', gap: 6 }}
           >
-            <span>🔗</span>
+            <Link size={16} />
             {t.toolConnect}
           </button>
         </div>
       )}
 
-      {/* Spacer */}
       <div style={{ flex: 1 }} />
 
-      {/* Stats */}
-      <div style={{
-        fontSize: 12,
-        color: '#888',
-        display: 'flex',
-        gap: 16
-      }}>
-        <span>{t.rooms}: <strong style={{ color: '#fff' }}>{roomCount}</strong></span>
+      {/* Help & Stats */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <button className="btn-base btn-icon" title="단축키 및 도움말" onClick={() => window.dispatchEvent(new Event('toggle-help-modal'))}>
+          <HelpCircle size={18} />
+        </button>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          <span>{t.rooms}: <strong style={{ color: 'var(--text-main)' }}>{roomCount}</strong></span>
+        </div>
       </div>
     </div>
   )

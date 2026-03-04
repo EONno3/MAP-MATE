@@ -1,79 +1,87 @@
-# Mapmate (Project L7KT)
+# Mapmate (MAP-MATE) v1.2
 
-AI 기반 Metroidvania 맵 생성 도구 - 프로젝트 관리 대시보드 및 초안 생성 시스템
+Metroidvania 스타일 맵(룸/연결/게이팅)을 **AI로 생성**하고, 생성 결과를 **웹 UI에서 편집/내보내기** 할 수 있는 도구입니다.
 
-![CI](https://github.com/YOUR_USERNAME/mapmate/workflows/CI/badge.svg)
+[![CI](https://github.com/EONno3/MAP-MATE/actions/workflows/ci.yml/badge.svg)](https://github.com/EONno3/MAP-MATE/actions/workflows/ci.yml)
+
+## 🌟 v1.2 업데이트 주요 내역
+- **룸 에디터 UI/UX 전체 개편**: 스페이스바(Spacebar) 화면 맵 패닝 기능 추가, 다중 탭(Tile/Object) 팔레트 적용, 플로팅 툴박스(Floating Toolbox) 및 단축키 지원(B: 브러시, G: 채우기, E: 지우기 등)
+- **플레이어 시점 테스트 모드(PlayTestMode) 추가**: 에디터 내에서 맵을 넓게 볼 수 있는 전체 화면 모드 추가
+- **이미지 로딩 단면 개선**: Danbooru API 연동으로 보다 빠르고 안정적인 NPC/오브젝트 이미지 프로필 로딩 처리
+- **어드민(Admin) 대시보드 연동 완료**: 백엔드와 연동되어 프로젝트 리스트, 데이터 조회 기능 및 검색 필터 UI 개선
+- **AI 맵 제너레이션 버그 수정**: 맵 생성 실패 문제 및 룸 연결성 향상 등 다수 기능 안정화
+
+## 현재 동작 기준(중요)
+
+이 저장소는 여러 패키지(모노레포)로 구성되어 있고, **현재 “바로 실행되는 기본 경로”는 `frontend + backend-ai`** 입니다.
+
+- **Docker 실행(권장)**: `start-docker.bat` → `frontend(nginx)` + `backend-ai(FastAPI)` 구동
+- **로컬 개발**: `backend-ai`를 `:8000`에 띄우고 `frontend`는 Vite dev server로 실행
+- **`backend-api` 패키지**: 현재 레포에는 존재하지만, “Prisma/DB 기반 백엔드” 문서는 최신 코드와 맞지 않는 부분이 있어 **WIP(정리/개발 중)** 으로 취급합니다.
+
+## 빠른 시작 (Docker, 권장)
+
+Windows라면 아래 2개만으로 바로 확인 가능합니다.
+
+- **실행**: `start-docker.bat` 더블클릭
+- **종료**: `stop-docker.bat` 더블클릭
+
+### 접속 주소
+
+- **Web UI**: `http://localhost:3000`
+- **Backend AI(health)**: `http://localhost:8000/healthz`
+
+자세한 내용은 `README-Docker.md`를 참고하세요.
 
 ## 프로젝트 개요
 
-Mapmate는 Metroidvania 스타일 게임 맵을 자동으로 생성해주는 AI 서비스입니다. 프로젝트 관리, 맵 초안 생성, 시각화 기능을 제공합니다.
+Mapmate는 Metroidvania 스타일 게임 맵을 자동으로 생성하고, 결과를 웹 UI에서 편집/내보내기 할 수 있는 도구입니다.
 
 ### 주요 기능
 
-- **프로젝트 관리**: 사용자별 프로젝트 CRUD
-- **AI 맵 생성**: 지정된 크기의 연결된 룸 그래프 자동 생성
-- **게이팅 시스템**: Key room과 locked edge 자동 배치
-- **시각화**: D3.js 기반 인터랙티브 맵 그래프 뷰어
+- **AI 맵 생성**: `/generate`(쿼리) 또는 `/generate/prompt`(자연어)로 룸/연결 생성
+- **월드 맵 편집**: 룸/연결 편집, 존(Zone) 관리, Undo/Redo
+- **룸 상세 편집**: 룸 단위의 상세 타일/오브젝트 편집(룸 에디터)
+- **내보내기/가져오기**: JSON Export/Import, Unity Export v1 지원
 
 ## 아키텍처
 
 ```
 ┌─────────────────┐
 │   Frontend      │  React + Vite + TypeScript
-│   (Port 5173)   │  - 프로젝트 대시보드
-└────────┬────────┘  - 맵 시각화
-         │
-         │ REST API
-         ↓
-┌─────────────────┐
-│  Backend API    │  Node.js + Express + Prisma
-│  (Port 3000)    │  - JWT 인증
-└────────┬────────┘  - 프로젝트 관리
-         │            - AI 서비스 프록시
-         │
-         │ HTTP + Circuit Breaker
+│   (Port 3000)   │  - 맵 생성/편집 UI
+└────────┬────────┘
+         │  (same-origin proxy)
+         │  /generate, /healthz, /api/*
          ↓
 ┌─────────────────┐
 │  Backend AI     │  FastAPI + Python
-│  (Port 5000)    │  - 맵 그래프 생성
-└────────┬────────┘  - 게이팅 로직
-         │
-         ↓
-┌─────────────────┐
-│   PostgreSQL    │  프로젝트 및 초안 데이터
-│  (Port 15432)   │
+│  (Port 8000)    │  - 맵 생성/검증/내보내기
 └─────────────────┘
 ```
+
+> `backend-api`(Node)는 현재 레포에 포함돼 있으나, Docker 기본 경로에는 연결되어 있지 않은 **WIP 패키지**입니다.
 
 ## 기술 스택
 
 ### Frontend
 - React 18 + TypeScript
 - Vite (빌드 도구)
-- React Router (라우팅)
-- Zustand (상태 관리)
-- SWR (데이터 페칭)
-- D3.js (그래프 시각화)
-
-### Backend API
-- Node.js + Express
-- Prisma ORM (PostgreSQL)
-- Passport.js (JWT 인증)
-- Zod (스키마 검증)
-- Axios + Opossum (AI 서비스 호출 + 서킷 브레이커)
+- Vitest (유닛 테스트)
+- Axios (HTTP)
 
 ### Backend AI
 - FastAPI + Python
 - NetworkX (그래프 알고리즘)
 - Pydantic (데이터 검증)
-
-### Database
-- PostgreSQL 15
+- (선택) OpenAI SDK (`OPENAI_API_KEY`가 있을 때 일부 기능에서 사용)
 
 ### DevOps
-- Docker Compose (로컬 개발)
-- GitHub Actions (CI/CD)
-- Jest + Pytest (테스팅)
+- Docker Compose (로컬 실행)
+- GitHub Actions (CI)
+
+### Backend API (WIP)
+- Node.js + Express (초기 스캐폴딩)
 
 ## 시작하기
 
@@ -86,167 +94,123 @@ Mapmate는 Metroidvania 스타일 게임 맵을 자동으로 생성해주는 AI 
 
 ### 설치
 
-```bash
+```powershell
 # 저장소 클론
-git clone https://github.com/YOUR_USERNAME/mapmate.git
-cd mapmate
+git clone https://github.com/EONno3/MAP-MATE.git
+cd MAP-MATE
 
 # 의존성 설치 (monorepo 전체)
 pnpm install
 
 # AI 서비스 의존성 설치
-cd packages/backend-ai
+cd packages\backend-ai
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-cd ../..
+cd ..\..
 ```
 
-### 데이터베이스 설정
+### Docker 실행(권장)
 
-```bash
-# Docker Compose로 PostgreSQL 시작
-docker compose up -d
-
-# Prisma 마이그레이션
-pnpm -C packages/backend-api exec prisma migrate deploy
-
-# 또는 개발 환경에서
-pnpm -C packages/backend-api exec prisma db push
+```powershell
+# Windows: 더블클릭해도 됩니다.
+.\start-docker.bat
 ```
+
+- Web UI: `http://localhost:3000`
+- Backend AI: `http://localhost:8000/healthz`
 
 ### 실행
 
-#### 1. 백엔드 API 서버
-```bash
-# 터미널 1
-cd packages/backend-api
+#### 1. Backend AI (FastAPI)
+
+```powershell
+cd packages\backend-ai
+.\venv\Scripts\Activate.ps1
+python -m uvicorn main:app --reload --port 8000
+```
+
+#### 2. Frontend (Vite)
+
+```powershell
+cd packages\frontend
 pnpm dev
 # → http://localhost:3000
 ```
 
-#### 2. AI 서비스
-```bash
-# 터미널 2
-cd packages/backend-ai
-uvicorn main:app --reload --port 5000
-# → http://localhost:5000
-```
+#### (선택) Windows 통합 런처
 
-#### 3. 프론트엔드
-```bash
-# 터미널 3
-cd packages/frontend
-pnpm dev
-# → http://localhost:5173
+```powershell
+# 3개 창을 띄워서 backend-ai / backend-api(WIP) / frontend를 함께 실행합니다.
+.\start-mapmate.bat
 ```
 
 ### 환경 변수
 
-#### Backend API (`packages/backend-api/.env`)
-```bash
-DATABASE_URL="postgresql://mapmate:mapmate@localhost:15432/mapmate?schema=public"
-JWT_SECRET="your-secret-key"
-AI_SERVICE_URL="http://localhost:5000"
-PORT=3000
-```
+#### Backend AI (`packages/backend-ai`)
+
+- **`OPENAI_API_KEY` (선택)**: 설정되어 있고 `openai` 패키지가 설치된 경우 일부 프롬프트 기반 기능에서 OpenAI 호출을 시도합니다. 미설정이면 키워드 기반 폴백으로 동작합니다.
 
 #### Frontend (`packages/frontend/.env`)
-```bash
-VITE_API_URL=http://localhost:3000
+```env
+# 기본값(빈 값)은 same-origin 프록시를 사용합니다. (Docker nginx / Vite proxy)
+VITE_API_URL=
+
+# 원하면 백엔드 직접 지정도 가능합니다(프록시 우회).
+# VITE_API_URL=http://localhost:8000
 ```
 
 ## 테스트
 
 ### 전체 테스트 실행
 
-```bash
-# 백엔드 API 테스트 (Jest)
-pnpm -C packages/backend-api test
-
-# AI 서비스 테스트 (Pytest)
-cd packages/backend-ai
-pytest --cov=. --cov-report=term-missing
-
-# 프론트엔드 타입 체크 및 린트
-pnpm -C packages/frontend type-check
-pnpm -C packages/frontend lint
+```powershell
+# Frontend (Vitest)
+pnpm install
+pnpm -C packages/frontend test
 ```
 
 ### CI/CD
 
 GitHub Actions가 다음 작업을 자동으로 수행합니다:
 
-- ✅ Backend API 테스트 (통합 테스트 포함, PostgreSQL 서비스 사용)
-- ✅ AI 서비스 테스트 (커버리지 80% 이상)
-- ✅ Frontend 빌드 및 린트
-- 📊 Codecov로 커버리지 리포트 업로드
+- ✅ 프론트엔드 빌드/검증(상세는 `.github/workflows/ci.yml` 참고)
+- ✅ 파이썬 백엔드 관련 체크(정리 중)
 
 ## 프로젝트 구조
 
 ```
-mapmate/
-├── .github/
-│   └── workflows/
-│       └── ci.yml              # GitHub Actions CI 워크플로우
+MAP-MATE/
+├── .github/workflows/          # CI
 ├── packages/
-│   ├── backend-api/            # Node.js API 서버
-│   │   ├── prisma/
-│   │   │   └── schema.prisma
-│   │   ├── src/
-│   │   │   ├── routes/         # API 엔드포인트
-│   │   │   ├── repositories/   # 데이터 레이어
-│   │   │   ├── middleware/     # 인증/검증 미들웨어
-│   │   │   ├── schemas/        # Zod 스키마
-│   │   │   ├── test/           # 통합 테스트
-│   │   │   └── index.ts
-│   │   └── package.json
-│   ├── backend-ai/             # Python AI 서비스
-│   │   ├── main.py             # FastAPI 앱
-│   │   ├── test_main.py        # Pytest 테스트
-│   │   ├── requirements.txt
-│   │   └── pytest.ini
-│   └── frontend/               # React 대시보드
-│       ├── src/
-│       │   ├── ui/             # React 컴포넌트
-│       │   ├── usecases/       # SWR 훅
-│       │   ├── zustand/        # 상태 관리
-│       │   └── lib/            # API 클라이언트
-│       └── package.json
-├── docker-compose.yml          # PostgreSQL 설정
-├── pnpm-workspace.yaml         # pnpm monorepo 설정
+│   ├── backend-ai/             # FastAPI (맵 생성/검증/내보내기)
+│   ├── backend-api/            # (WIP) Node API 스캐폴딩
+│   └── frontend/               # React + Vite (+ nginx for Docker)
+├── docker-compose.yml          # Docker: frontend + backend-ai
+├── start-docker.bat
+├── stop-docker.bat
+├── start_ai.bat
+├── start-mapmate.bat           # (실험/레거시 성격의 통합 런처)
 └── README.md
 ```
 
 ## API 문서
 
-### Backend API Endpoints
+### Backend AI Endpoints (기본 `:8000`)
 
-| Method | Path | Description | Auth |
-|--------|------|-------------|------|
-| POST | `/auth/register` | 사용자 등록 | - |
-| POST | `/auth/login` | 로그인 (JWT 발급) | - |
-| GET | `/projects` | 프로젝트 목록 조회 | ✅ |
-| POST | `/projects` | 프로젝트 생성 | ✅ |
-| GET | `/projects/:id` | 프로젝트 상세 조회 | ✅ |
-| PUT | `/projects/:id` | 프로젝트 수정 | ✅ |
-| DELETE | `/projects/:id` | 프로젝트 삭제 | ✅ |
-| POST | `/projects/:id/generate-draft` | 맵 초안 생성 | ✅ |
-| GET | `/healthz` | 헬스체크 | - |
-
-### AI Service Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | 서비스 상태 |
-| POST | `/generate-draft` | 맵 그래프 생성 |
-| GET | `/healthz` | 헬스체크 |
+- **GET** `/healthz`: 헬스체크
+- **GET** `/generate`: 쿼리 파라미터로 맵 생성
+- **POST** `/generate/prompt`: 자연어 프롬프트 기반 생성
+- **POST** `/generate/room-detail`: 룸 상세 타일/오브젝트 생성
+- **POST** `/api/validate`: rooms/connections 정합성 검사
 
 ## 개발 가이드
 
 ### 코드 스타일
 
-- **Backend API**: ESLint + Prettier (자동 포맷팅)
-- **Frontend**: ESLint + Prettier (자동 포맷팅)
-- **AI Service**: Black (권장)
+- **Frontend**: TypeScript + Vitest (테스트 우선 권장)
+- **Backend AI**: Python (포맷터/린터는 정리 중)
+- **Backend API**: WIP
 
 ### 커밋 컨벤션
 
@@ -267,56 +231,28 @@ chore: 빌드 설정, 의존성 업데이트 등
 
 ## 트러블슈팅
 
-### PostgreSQL 연결 실패
-```bash
-# Docker 컨테이너 상태 확인
-docker compose ps
+### Docker 실행이 실패하는 경우
 
-# 로그 확인
-docker compose logs postgres
+- Docker Desktop이 실행 중인지 확인한 뒤, `start-docker.bat`를 다시 실행하세요.
+- 실패 로그는 프로젝트 루트의 `docker-launch.log`에 남습니다.
 
-# 재시작
-docker compose restart postgres
-```
+### 로컬에서 프론트가 백엔드에 연결되지 않는 경우
 
-### Prisma Client 생성 오류
-```bash
-# Prisma Client 재생성
-pnpm -C packages/backend-api exec prisma generate
-```
+- `backend-ai`가 `http://localhost:8000/healthz`에 응답하는지 먼저 확인하세요.
+- `packages/frontend/vite.config.ts`의 프록시가 `http://localhost:8000`을 가리키는지 확인하세요.
 
-### AI 서비스 타임아웃
-- Circuit Breaker 설정 확인 (기본 25초)
-- `packages/backend-api/src/routes/projects.ts`에서 타임아웃 조정 가능
+### 포트 충돌
 
-### 프론트엔드 CORS 에러
-- `packages/backend-api/src/index.ts`에서 CORS 설정 확인
-- 로컬 개발 시 `http://localhost:5173` 허용 확인
+- 기본 포트:
+  - Frontend: `3000`
+  - Backend AI: `8000`
+- 이미 사용 중이면:
+  - Docker를 끄고(`stop-docker.bat`) 로컬로 실행하거나
+  - `packages/frontend/vite.config.ts`에서 프론트 포트를 변경하세요.
 
-## 성능 목표
+## 성능
 
-- **AI 생성 속도**: size=300 기준 30초 이내
-- **API 응답 시간**: 평균 < 200ms (DB 쿼리)
-- **테스트 커버리지**: 
-  - Backend API: 80% 이상
-  - AI Service: 80% 이상
-
-### 성능 벤치마크 실행
-
-상세한 가이드는 [PERFORMANCE.md](./PERFORMANCE.md) 참조
-
-```bash
-# AI 서비스 단독
-cd packages/backend-ai
-python benchmark.py
-
-# 엔드투엔드
-cd packages/backend-api
-JWT_TOKEN="<token>" npx ts-node benchmark.ts e2e
-
-# 전체
-JWT_TOKEN="<token>" npx ts-node benchmark.ts all
-```
+성능 관련 기록/목표/벤치마크는 `PERFORMANCE.md`를 참고하세요.
 
 ## 라이선스
 
@@ -334,4 +270,4 @@ MIT License
 
 ## 연락처
 
-프로젝트 링크: [https://github.com/YOUR_USERNAME/mapmate](https://github.com/YOUR_USERNAME/mapmate)
+프로젝트 링크: `https://github.com/EONno3/MAP-MATE`

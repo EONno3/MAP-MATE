@@ -1,6 +1,7 @@
 import React from 'react'
-import { ObjectType, OBJECT_ICONS } from '../../types/map'
+import { ObjectType } from '../../types/map'
 import { Translations } from '../../i18n/translations'
+import { Box, User, Star, Package, ToggleLeft, Ghost, Save, ArrowRightCircle } from 'lucide-react'
 
 interface ObjectPaletteProps {
   selectedObject: ObjectType | null
@@ -9,9 +10,25 @@ interface ObjectPaletteProps {
 }
 
 const OBJECTS: ObjectType[] = [
-  'spawn_point', 'enemy_spawn', 'item', 'chest', 
+  'spawn_point', 'enemy_spawn', 'item', 'chest',
   'switch', 'npc', 'save_point', 'transition'
 ]
+
+// Local mapping for Lucide icons
+const ObjectIcon = ({ type, color }: { type: ObjectType, color?: string }) => {
+  const size = 20
+  switch (type) {
+    case 'spawn_point': return <Box size={size} color={color || '#22c55e'} />
+    case 'enemy_spawn': return <Ghost size={size} color={color || '#ef4444'} />
+    case 'item': return <Star size={size} color={color || '#eab308'} />
+    case 'chest': return <Package size={size} color={color || '#a855f7'} />
+    case 'switch': return <ToggleLeft size={size} color={color || '#06b6d4'} />
+    case 'npc': return <User size={size} color={color || '#f97316'} />
+    case 'save_point': return <Save size={size} color={color || '#3b82f6'} />
+    case 'transition': return <ArrowRightCircle size={size} color={color || '#ec4899'} />
+    default: return <Box size={size} color={color} />
+  }
+}
 
 export function ObjectPalette({ selectedObject, onSelectObject, t }: ObjectPaletteProps) {
   const getObjectName = (obj: ObjectType): string => {
@@ -31,16 +48,17 @@ export function ObjectPalette({ selectedObject, onSelectObject, t }: ObjectPalet
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 600,
-        color: '#888',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
+        color: 'var(--text-muted)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
         marginBottom: 12
       }}>
-        📦 {t.objects}
+        <Package size={14} color="var(--accent-blue)" /> {t.objects}
       </div>
-      
+
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
@@ -53,26 +71,25 @@ export function ObjectPalette({ selectedObject, onSelectObject, t }: ObjectPalet
             title={getObjectName(obj)}
             style={{
               padding: '10px 8px',
-              backgroundColor: selectedObject === obj ? '#2196F3' : '#252530',
-              border: selectedObject === obj ? '2px solid #2196F3' : '1px solid #444',
-              borderRadius: 6,
+              backgroundColor: selectedObject === obj ? 'var(--bg-panel-active)' : 'var(--bg-panel-hover)',
+              border: '1px solid',
+              borderColor: selectedObject === obj ? 'var(--accent-blue)' : 'var(--border-light)',
+              borderRadius: 'var(--border-radius-sm)',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 4,
+              gap: 6,
               transition: 'all 0.15s'
             }}
           >
-            <div style={{
-              fontSize: 20,
-              lineHeight: 1
-            }}>
-              {OBJECT_ICONS[obj]}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ObjectIcon type={obj} />
             </div>
             <span style={{
-              fontSize: 9,
-              color: selectedObject === obj ? '#fff' : '#aaa',
+              fontSize: 10,
+              fontWeight: selectedObject === obj ? 600 : 400,
+              color: selectedObject === obj ? '#fff' : 'var(--text-muted)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -83,21 +100,12 @@ export function ObjectPalette({ selectedObject, onSelectObject, t }: ObjectPalet
           </button>
         ))}
       </div>
-      
+
       {selectedObject && (
         <button
           onClick={() => onSelectObject(null)}
-          style={{
-            width: '100%',
-            marginTop: 8,
-            padding: '8px',
-            backgroundColor: 'transparent',
-            border: '1px solid #444',
-            borderRadius: 4,
-            color: '#888',
-            cursor: 'pointer',
-            fontSize: 11
-          }}
+          className="btn-base btn-secondary"
+          style={{ width: '100%', marginTop: 8 }}
         >
           {t.cancelSelection}
         </button>
@@ -105,7 +113,3 @@ export function ObjectPalette({ selectedObject, onSelectObject, t }: ObjectPalet
     </div>
   )
 }
-
-
-
-

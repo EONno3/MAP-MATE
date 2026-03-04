@@ -1,9 +1,9 @@
 import { useState, useCallback, useMemo } from 'react'
-import { 
-  Room, 
-  RoomDetail, 
-  TileType, 
-  ObjectType, 
+import {
+  Room,
+  RoomDetail,
+  TileType,
+  ObjectType,
   RoomObject,
   TILES_PER_CHUNK_X,
   TILES_PER_CHUNK_Y
@@ -16,18 +16,20 @@ interface UseRoomEditorReturn {
   // State
   editingRoom: Room | null
   roomDetail: RoomDetail | null
+  activeLayerId: string
   selectedTile: TileType
   selectedObject: ObjectType | null
   currentTool: RoomEditorTool
-  
+
   // History
   canUndo: boolean
   canRedo: boolean
   undo: () => void
   redo: () => void
-  
+
   // Actions
   setEditingRoom: (room: Room | null) => void
+  setActiveLayerId: (id: string) => void
   setSelectedTile: (tile: TileType) => void
   setSelectedObject: (obj: ObjectType | null) => void
   setCurrentTool: (tool: RoomEditorTool) => void
@@ -46,6 +48,7 @@ const API_URL = import.meta.env.VITE_API_URL || ''
 
 export function useRoomEditor(initialRoom: Room | null = null): UseRoomEditorReturn {
   const [editingRoom, setEditingRoomState] = useState<Room | null>(initialRoom)
+  const [activeLayerId, setActiveLayerId] = useState<string>('layer_base')
   const [selectedTile, setSelectedTile] = useState<TileType>('solid')
   const [selectedObject, setSelectedObject] = useState<ObjectType | null>(null)
   const [currentTool, setCurrentTool] = useState<RoomEditorTool>('brush')
@@ -64,7 +67,16 @@ export function useRoomEditor(initialRoom: Room | null = null): UseRoomEditorRet
       })
     )
 
-    return { roomId: room.id, tileWidth, tileHeight, tiles, objects: [] }
+    return {
+      roomId: room.id,
+      tileWidth,
+      tileHeight,
+      gridSize: 16,
+      layers: [
+        { id: 'layer_base', name: 'Base', type: 'tile', visible: true, opacity: 1, tiles },
+        { id: 'layer_objects', name: 'Objects', type: 'object', visible: true, opacity: 1, objects: [] }
+      ]
+    }
   }, [])
 
   // 초기 상세맵 (히스토리용)
@@ -104,23 +116,36 @@ export function useRoomEditor(initialRoom: Room | null = null): UseRoomEditorRet
   const updateTile = useCallback((x: number, y: number, tileType: TileType) => {
     if (!roomDetail) return
     if (y < 0 || y >= roomDetail.tileHeight || x < 0 || x >= roomDetail.tileWidth) return
-    if (roomDetail.tiles[y][x] === tileType) return // 변경 없음
 
-    const newTiles = roomDetail.tiles.map(row => [...row])
+    const layerIndex = roomDetail.layers.findIndex(l => l.id === activeLayerId && l.type === 'tile')
+    if (layerIndex === -1) return
+    const layer = roomDetail.layers[layerIndex]
+    if (!layer.tiles) return
+    if (layer.tiles[y][x] === tileType) return // 변경 없음
+
+    const newTiles = layer.tiles.map(row => [...row])
     newTiles[y][x] = tileType
 
-    setRoomDetailHistory({ ...roomDetail, tiles: newTiles })
-  }, [roomDetail, setRoomDetailHistory])
+    const newLayers = [...roomDetail.layers]
+    newLayers[layerIndex] = { ...layer, tiles: newTiles }
+
+    setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+  }, [roomDetail, activeLayerId, setRoomDetailHistory])
 
   // 채우기 (Flood Fill)
   const fillTiles = useCallback((startX: number, startY: number, tileType: TileType) => {
     if (!roomDetail) return
     if (startY < 0 || startY >= roomDetail.tileHeight || startX < 0 || startX >= roomDetail.tileWidth) return
 
-    const originalType = roomDetail.tiles[startY][startX]
+    const layerIndex = roomDetail.layers.findIndex(l => l.id === activeLayerId && l.type === 'tile')
+    if (layerIndex === -1) return
+    const layer = roomDetail.layers[layerIndex]
+    if (!layer.tiles) return
+
+    const originalType = layer.tiles[startY][startX]
     if (originalType === tileType) return // 같은 타입이면 무시
 
-    const newTiles = roomDetail.tiles.map(row => [...row])
+    const newTiles = layer.tiles.map(row => [...row])
     const stack: [number, number][] = [[startX, startY]]
     const visited = new Set<string>()
 
@@ -138,15 +163,28 @@ export function useRoomEditor(initialRoom: Room | null = null): UseRoomEditorRet
       stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1])
     }
 
-    setRoomDetailHistory({ ...roomDetail, tiles: newTiles })
-  }, [roomDetail, setRoomDetailHistory])
+    const newLayers = [...roomDetail.layers]
+    newLayers[layerIndex] = { ...layer, tiles: newTiles }
+
+    setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+  }, [roomDetail, activeLayerId, setRoomDetailHistory])
 
   // 오브젝트 배치
   const placeObject = useCallback((x: number, y: number, objectType: ObjectType) => {
     if (!roomDetail) return
 
+    let layerIndex = roomDetail.layers.findIndex(l => l.id === activeLayerId && l.type === 'object')
+    if (layerIndex === -1) {
+      // 오브젝트 레이어가 활성화되지 않았으면 첫번째 오브젝트 레이어를 찾음
+      layerIndex = roomDetail.layers.findIndex(l => l.type === 'object')
+    }
+    if (layerIndex === -1) return
+
+    const layer = roomDetail.layers[layerIndex]
+    const objects = layer.objects || []
+
     // 같은 위치에 같은 타입 있으면 무시
-    const exists = roomDetail.objects.find(
+    const exists = objects.find(
       obj => obj.x === x && obj.y === y && obj.type === objectType
     )
     if (exists) return
@@ -158,32 +196,43 @@ export function useRoomEditor(initialRoom: Room | null = null): UseRoomEditorRet
       y
     }
 
-    setRoomDetailHistory({
-      ...roomDetail,
-      objects: [...roomDetail.objects, newObject]
-    })
-  }, [roomDetail, setRoomDetailHistory])
+    const newLayers = [...roomDetail.layers]
+    newLayers[layerIndex] = { ...layer, objects: [...objects, newObject] }
+
+    setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+  }, [roomDetail, activeLayerId, setRoomDetailHistory])
 
   // 오브젝트 삭제
   const deleteObject = useCallback((objectId: string) => {
     if (!roomDetail) return
 
-    setRoomDetailHistory({
-      ...roomDetail,
-      objects: roomDetail.objects.filter(obj => obj.id !== objectId)
+    const newLayers = roomDetail.layers.map(layer => {
+      if (layer.type === 'object' && layer.objects) {
+        return { ...layer, objects: layer.objects.filter(obj => obj.id !== objectId) }
+      }
+      return layer
     })
+
+    setRoomDetailHistory({ ...roomDetail, layers: newLayers })
   }, [roomDetail, setRoomDetailHistory])
 
   // 오브젝트 이동
   const moveObject = useCallback((objectId: string, newX: number, newY: number) => {
     if (!roomDetail) return
 
-    setRoomDetailHistory({
-      ...roomDetail,
-      objects: roomDetail.objects.map(obj =>
-        obj.id === objectId ? { ...obj, x: newX, y: newY } : obj
-      )
+    const newLayers = roomDetail.layers.map(layer => {
+      if (layer.type === 'object' && layer.objects) {
+        return {
+          ...layer,
+          objects: layer.objects.map(obj =>
+            obj.id === objectId ? { ...obj, x: newX, y: newY } : obj
+          )
+        }
+      }
+      return layer
     })
+
+    setRoomDetailHistory({ ...roomDetail, layers: newLayers })
   }, [roomDetail, setRoomDetailHistory])
 
   // 초기화
@@ -215,14 +264,26 @@ export function useRoomEditor(initialRoom: Room | null = null): UseRoomEditorRet
       }
 
       const data = await response.json()
-      
+
       // API 응답을 RoomDetail로 변환
+      let newLayers = [...roomDetail.layers]
+
+      const baseLayerIndex = newLayers.findIndex(l => l.name === 'Base' && l.type === 'tile')
+      if (baseLayerIndex !== -1 && data.tiles) {
+        newLayers[baseLayerIndex] = { ...newLayers[baseLayerIndex], tiles: data.tiles }
+      }
+
+      const objLayerIndex = newLayers.findIndex(l => l.name === 'Objects' && l.type === 'object')
+      if (objLayerIndex !== -1 && data.objects) {
+        newLayers[objLayerIndex] = { ...newLayers[objLayerIndex], objects: data.objects }
+      }
+
       const newDetail: RoomDetail = {
         roomId: editingRoom.id,
         tileWidth: roomDetail.tileWidth,
         tileHeight: roomDetail.tileHeight,
-        tiles: data.tiles || roomDetail.tiles,
-        objects: data.objects || []
+        gridSize: roomDetail.gridSize,
+        layers: newLayers
       }
 
       setRoomDetailHistory(newDetail)
@@ -235,6 +296,7 @@ export function useRoomEditor(initialRoom: Room | null = null): UseRoomEditorRet
   return {
     editingRoom,
     roomDetail,
+    activeLayerId,
     selectedTile,
     selectedObject,
     currentTool,
@@ -243,6 +305,7 @@ export function useRoomEditor(initialRoom: Room | null = null): UseRoomEditorRet
     undo,
     redo,
     setEditingRoom,
+    setActiveLayerId,
     setSelectedTile,
     setSelectedObject,
     setCurrentTool,

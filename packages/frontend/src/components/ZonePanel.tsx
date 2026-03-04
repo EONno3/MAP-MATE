@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import { Zone } from '../types/map'
 import { Translations } from '../i18n/translations'
+import { Palette, X, Trash2, Plus } from 'lucide-react'
 
 // 기본 색상 팔레트
 const DEFAULT_COLORS = [
@@ -77,31 +78,31 @@ export function ZonePanel({
     return (
       <button
         onClick={onToggle}
+        className="panel-base"
         style={{
           position: 'absolute',
-          bottom: 20,
-          left: 20,
+          bottom: 24,
+          left: 16,
           padding: '10px 14px',
-          backgroundColor: '#252530',
-          border: '1px solid #444',
-          borderRadius: 8,
-          color: '#fff',
-          fontSize: 13,
-          fontWeight: 600,
+          color: 'var(--text-main)',
           cursor: 'pointer',
+          fontSize: 13,
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          zIndex: 100
+          zIndex: 'var(--z-panel)',
+          border: '1px solid var(--border-light)'
         }}
       >
-        <span>🎨</span>
+        <Palette size={16} color="var(--accent-blue)" />
         {t.zoneManagement}
-        <span style={{ 
-          backgroundColor: '#4a90d9',
+        <span style={{
+          backgroundColor: 'var(--accent-blue)',
+          color: '#000',
           padding: '2px 6px',
           borderRadius: 10,
-          fontSize: 11
+          fontSize: 11,
+          fontWeight: 600
         }}>
           {zoneCount}
         </span>
@@ -110,18 +111,17 @@ export function ZonePanel({
   }
 
   return (
-    <div style={{
-      position: 'absolute',
-      bottom: 20,
-      left: 20,
-      width: 300,
-      backgroundColor: '#1a1a24',
-      border: '1px solid #333',
-      borderRadius: 12,
-      padding: 16,
-      zIndex: 100,
-      boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
-    }}>
+    <div
+      className="panel-base animate-slide-up"
+      style={{
+        position: 'absolute',
+        bottom: 24,
+        left: 16,
+        width: 320,
+        padding: 20,
+        zIndex: 'var(--z-panel)'
+      }}
+    >
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -129,34 +129,27 @@ export function ZonePanel({
         alignItems: 'center',
         marginBottom: 16,
         paddingBottom: 12,
-        borderBottom: '1px solid #333'
+        borderBottom: '1px solid var(--border-light)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 20 }}>🎨</span>
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>
-            {t.zoneManagement}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: 'var(--text-main)' }}>
+          <Palette size={18} color="var(--accent-blue)" />
+          {t.zoneManagement}
         </div>
         <button
           onClick={onToggle}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#888',
-            fontSize: 18,
-            cursor: 'pointer',
-            padding: 4
-          }}
+          className="btn-icon"
+          style={{ background: 'none', border: 'none', padding: 4 }}
         >
-          ✕
+          <X size={18} />
         </button>
       </div>
 
       {/* Zone List */}
-      <div style={{ 
+      <div style={{
         maxHeight: 250,
         overflowY: 'auto',
-        marginBottom: 12
+        marginBottom: 16,
+        paddingRight: 4
       }}>
         {zoneEntries.map(([zoneId, zone]) => (
           <div
@@ -166,9 +159,11 @@ export function ZonePanel({
               alignItems: 'center',
               gap: 10,
               padding: '8px',
-              backgroundColor: '#252530',
-              borderRadius: 6,
-              marginBottom: 6
+              backgroundColor: 'var(--bg-panel-hover)',
+              border: '1px solid var(--border-light)',
+              borderRadius: 'var(--border-radius-sm)',
+              marginBottom: 6,
+              transition: 'background-color 0.2s'
             }}
           >
             {/* Color Picker */}
@@ -177,10 +172,10 @@ export function ZonePanel({
               value={zone.color}
               onChange={(e) => handleColorChange(Number(zoneId), e.target.value)}
               style={{
-                width: 32,
-                height: 32,
+                width: 24,
+                height: 24,
                 border: 'none',
-                borderRadius: 4,
+                borderRadius: '50%',
                 cursor: 'pointer',
                 backgroundColor: 'transparent'
               }}
@@ -202,22 +197,15 @@ export function ZonePanel({
                   }
                 }}
                 autoFocus
-                style={{
-                  flex: 1,
-                  padding: '4px 8px',
-                  backgroundColor: '#1a1a24',
-                  border: '1px solid #4a90d9',
-                  borderRadius: 4,
-                  color: '#fff',
-                  fontSize: 13
-                }}
+                className="input-base"
+                style={{ flex: 1, padding: '4px 8px' }}
               />
             ) : (
               <span
                 onClick={() => setEditingZoneId(Number(zoneId))}
                 style={{
                   flex: 1,
-                  color: '#fff',
+                  color: 'var(--text-main)',
                   fontSize: 13,
                   cursor: 'pointer'
                 }}
@@ -231,17 +219,14 @@ export function ZonePanel({
             <button
               onClick={() => handleDeleteZone(Number(zoneId))}
               disabled={zoneCount <= 1}
+              className="btn-icon"
               style={{
-                background: 'none',
-                border: 'none',
-                color: zoneCount <= 1 ? '#444' : '#ff6b6b',
-                fontSize: 14,
-                cursor: zoneCount <= 1 ? 'not-allowed' : 'pointer',
+                color: zoneCount <= 1 ? 'var(--text-disabled)' : 'var(--accent-red)',
                 padding: 4
               }}
               title={t.deleteZone}
             >
-              🗑️
+              <Trash2 size={16} />
             </button>
           </div>
         ))}
@@ -251,49 +236,29 @@ export function ZonePanel({
       <div style={{
         display: 'flex',
         gap: 8,
-        paddingTop: 12,
-        borderTop: '1px solid #333'
+        paddingTop: 16,
+        borderTop: '1px solid var(--border-light)'
       }}>
         <input
           type="text"
           value={newZoneName}
           onChange={(e) => setNewZoneName(e.target.value)}
           placeholder={t.newZone}
+          className="input-base"
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleAddZone()
           }}
-          style={{
-            flex: 1,
-            padding: '8px 12px',
-            backgroundColor: '#252530',
-            border: '1px solid #444',
-            borderRadius: 6,
-            color: '#fff',
-            fontSize: 13
-          }}
+          style={{ flex: 1 }}
         />
         <button
           onClick={handleAddZone}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#4a90d9',
-            border: 'none',
-            borderRadius: 6,
-            color: '#fff',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6
-          }}
+          className="btn-base btn-primary"
+          style={{ padding: '8px 16px' }}
         >
-          <span>➕</span>
+          <Plus size={16} />
           {t.addZone}
         </button>
       </div>
     </div>
   )
 }
-
-

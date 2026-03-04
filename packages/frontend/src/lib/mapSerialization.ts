@@ -1,4 +1,4 @@
-import type { Connection, MapData, Room } from '../types/map'
+import type { Connection, MapData, Room, RoomDetail, RoomLayer, RoomObject, TileType } from '../types/map'
 import { applyConnectionsToRooms, normalizeConnections } from './mapConnections'
 import type { TileCatalogStateV1 } from './tileCatalogState'
 import { normalizeTileCatalogState } from './tileCatalogState'
@@ -22,6 +22,53 @@ function asNumber(v: unknown, fallback: number): number {
 function hasRoomsAndZones(v: UnknownRecord): v is UnknownRecord & { rooms: unknown; zones: unknown } {
   return 'rooms' in v && 'zones' in v
 }
+
+function normalizeRoomDetail(detailRaw: unknown, roomId: number): RoomDetail | undefined {
+  if (!isRecord(detailRaw)) return undefined
+
+  const tileWidth = asNumber(detailRaw.tileWidth, 10)
+  const tileHeight = asNumber(detailRaw.tileHeight, 6)
+  const gridSize = asNumber(detailRaw.gridSize, 16)
+
+  let layers: RoomLayer[] = []
+
+  if (Array.isArray(detailRaw.layers)) {
+    layers = detailRaw.layers as RoomLayer[]
+  } else if (Array.isArray(detailRaw.tiles)) {
+    // Migrate old tiles to a Base layer
+    layers.push({
+      id: 'layer_base',
+      name: 'Base',
+      type: 'tile',
+      visible: true,
+      opacity: 1,
+      tiles: detailRaw.tiles as TileType[][]
+    })
+  }
+
+  // Handle old objects -> object layer
+  if (Array.isArray(detailRaw.objects) && detailRaw.objects.length > 0) {
+    if (!layers.some(l => l.type === 'object' && l.name === 'Objects')) {
+      layers.push({
+        id: 'layer_objects',
+        name: 'Objects',
+        type: 'object',
+        visible: true,
+        opacity: 1,
+        objects: detailRaw.objects as RoomObject[]
+      })
+    }
+  }
+
+  return {
+    roomId,
+    tileWidth,
+    tileHeight,
+    gridSize,
+    layers
+  }
+}
+
 
 function normalizeRoom(room: unknown): Room | null {
   if (!isRecord(room)) return null
@@ -51,7 +98,7 @@ function normalizeRoom(room: unknown): Room | null {
     neighbors,
     name: typeof room.name === 'string' ? room.name : undefined,
     depth: typeof room.depth === 'number' ? room.depth : undefined,
-    detail: isRecord(room.detail) ? (room.detail as any) : undefined,
+    detail: normalizeRoomDetail(room.detail, id),
   }
 }
 
@@ -103,7 +150,7 @@ export function parseImportedMapJson(json: string): ImportedMap {
     rawConnections.length > 0
       ? rawConnections
       : // neighbors 기반 폴백
-        rooms.flatMap((r) => (r.neighbors ?? []).map((n) => ({ fromId: r.id, toId: n, condition: 'none' as const })))
+      rooms.flatMap((r) => (r.neighbors ?? []).map((n) => ({ fromId: r.id, toId: n, condition: 'none' as const })))
 
   const normalizedConnections = normalizeConnections(connections)
   const normalizedMapData = applyConnectionsToRooms(mapData, normalizedConnections)

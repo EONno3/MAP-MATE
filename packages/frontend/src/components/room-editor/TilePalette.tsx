@@ -1,6 +1,7 @@
 import React from 'react'
 import { TileType, TILE_COLORS } from '../../types/map'
 import { Translations } from '../../i18n/translations'
+import { PenTool } from 'lucide-react'
 
 interface TilePaletteProps {
   selectedTile: TileType
@@ -31,16 +32,17 @@ export function TilePalette({ selectedTile, onSelectTile, tileColors, t, tiles }
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 600,
-        color: '#888',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
+        color: 'var(--text-muted)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
         marginBottom: 12
       }}>
-        🖌️ {t.tileBrush}
+        <PenTool size={14} color="var(--accent-blue)" /> {t.tileBrush}
       </div>
-      
+
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)',
@@ -52,34 +54,37 @@ export function TilePalette({ selectedTile, onSelectTile, tileColors, t, tiles }
             onClick={() => onSelectTile(tile.key as TileType)}
             title={tile.label}
             style={{
-              padding: 6,
-              backgroundColor: selectedTile === tile.key ? '#4CAF50' : '#252530',
-              border: selectedTile === tile.key ? '2px solid #4CAF50' : '1px solid #444',
-              borderRadius: 6,
+              padding: '6px 4px',
+              backgroundColor: selectedTile === tile.key ? 'var(--bg-panel-active)' : 'var(--bg-panel-hover)',
+              border: '1px solid',
+              borderColor: selectedTile === tile.key ? 'var(--accent-blue)' : 'var(--border-light)',
+              borderRadius: 'var(--border-radius-sm)',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 4,
+              gap: 6,
               minWidth: 0,
               transition: 'all 0.15s'
             }}
           >
             <div style={{
               width: '100%',
-              height: 34,
+              height: 28,
               backgroundColor: tile.color,
-              border: tile.key === 'empty' ? '1px dashed #666' : 'none',
+              border: tile.key === 'empty' ? '1px dashed var(--border-light)' : 'none',
               borderRadius: 4,
-              display: 'block'
+              display: 'block',
+              boxShadow: 'var(--shadow-sm)'
             }}>
             </div>
             {/* 아이콘은 제거하고, 타일명은 표시(실시간 연동) */}
             <div style={{
               width: '100%',
               fontSize: 10,
+              fontWeight: selectedTile === tile.key ? 600 : 400,
               lineHeight: 1.15,
-              color: '#ddd',
+              color: selectedTile === tile.key ? '#fff' : 'var(--text-muted)',
               textAlign: 'center',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
@@ -94,7 +99,3 @@ export function TilePalette({ selectedTile, onSelectTile, tileColors, t, tiles }
     </div>
   )
 }
-
-
-
-
