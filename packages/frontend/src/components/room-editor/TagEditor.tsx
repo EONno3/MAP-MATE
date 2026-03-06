@@ -59,7 +59,7 @@ export function TagEditor({ object, onUpdate, onClose }: TagEditorProps) {
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>ID: {object.id}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>위치: ({object.x}, {object.y})</div>
 
-            <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 12 }}>
+            <div data-tutorial="roomeditor-tag-unity" style={{ borderTop: '1px solid var(--border-light)', paddingTop: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Unity 태그</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                     {(object.tags || []).map(tag => (
@@ -80,7 +80,7 @@ export function TagEditor({ object, onUpdate, onClose }: TagEditorProps) {
             </div>
 
             {(object.tags && object.tags.length > 0) && (
-                <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div data-tutorial="roomeditor-tag-params" style={{ borderTop: '1px solid var(--border-light)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ fontSize: 12, fontWeight: 600 }}>태그 파라미터</div>
                     {object.tags.map(tag => {
                         const defs = UNITY_COMPONENT_MAP[tag]?.components || []

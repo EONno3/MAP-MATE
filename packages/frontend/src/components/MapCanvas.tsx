@@ -1197,6 +1197,7 @@ export function MapCanvas({
   return (
     <div
       ref={containerRef}
+      data-tutorial="canvas-view"
       style={{
         flex: 1,
         position: 'relative',
@@ -1240,6 +1241,7 @@ export function MapCanvas({
           onClick={(e) => { e.stopPropagation(); setShowDetails(v => !v) }}
           className={`btn-base ${showDetails ? 'btn-primary' : 'btn-secondary'}`}
           style={{ padding: '8px 12px', fontSize: 12, boxShadow: 'var(--shadow-md)' }}
+          data-tutorial="map-canvas-thumbnail"
         >
           {showDetails ? '상세맵 썸네일 숨기기' : '상세맵 썸네일 보이기'}
         </button>

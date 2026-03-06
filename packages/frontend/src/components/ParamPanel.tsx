@@ -63,6 +63,7 @@ export function ParamPanel({ onGenerate, onGenerateFromPrompt, loading, collapse
       <button
         onClick={onToggle}
         className="panel-base"
+        data-tutorial="sidebar-parameters"
         style={{
           position: 'absolute',
           top: 70, // Below toolbar
@@ -175,7 +176,7 @@ export function ParamPanel({ onGenerate, onGenerateFromPrompt, loading, collapse
 
       {/* AI Prompt Mode */}
       {generateMode === 'ai' && onGenerateFromPrompt ? (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in" data-tutorial="sidebar-ai-prompt">
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
               {t.aiPrompt}
@@ -241,7 +242,7 @@ export function ParamPanel({ onGenerate, onGenerateFromPrompt, loading, collapse
           </div>
         </div>
       ) : (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in" data-tutorial="sidebar-parameters">
           {/* Seed Input */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -356,6 +357,7 @@ export function ParamPanel({ onGenerate, onGenerateFromPrompt, loading, collapse
             onClick={handleGenerate}
             disabled={loading}
             className="btn-base btn-primary"
+            data-tutorial="param-generate"
             style={{ width: '100%', padding: '12px', fontSize: 14 }}
           >
             {loading ? (

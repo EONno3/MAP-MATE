@@ -87,7 +87,7 @@ export function RoomNavigator({ mapData, currentRoom, connections = [] }: RoomNa
     }, [mapData, currentRoom, connections])
 
     return (
-        <div className="animate-fade-in" style={{
+        <div data-tutorial="roomeditor-navigator" className="animate-fade-in" style={{
             width: '100%',
             height: 200,
             marginTop: 16,

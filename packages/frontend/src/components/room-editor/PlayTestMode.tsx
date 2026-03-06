@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { RoomDetail, TILE_SIZE, TileType, UNITY_COMPONENT_MAP, PlayTestSettings } from '../../types/map'
-import { X, Play, Settings2 } from 'lucide-react'
+import { X, Play, Settings2, Sparkles } from 'lucide-react'
 
 interface PlayTestModeProps {
     roomDetail: RoomDetail
@@ -345,22 +345,35 @@ export function PlayTestMode({ roomDetail, onClose, tileColors, settings, onUpda
                 <div style={{ background: 'var(--accent-green)', fontWeight: 'bold', color: '#000', padding: '6px 16px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Play size={16} fill="#000" /> 플레이 테스트 모드
                 </div>
-                <button onClick={() => setShowSettings(!showSettings)} className="btn-base" style={{ background: 'var(--accent-blue)', color: '#fff', padding: '6px 12px' }}><Settings2 size={16} /> 설정</button>
-                <button onClick={handleClose} className="btn-base" style={{ background: 'var(--accent-red)', color: '#fff', padding: '6px 12px' }}><X size={16} /> 에디터로 돌아가기</button>
+                <button
+                    onClick={() => {
+                        const event = new CustomEvent('toggle-tutorial-mode')
+                        window.dispatchEvent(event)
+                    }}
+                    className="btn-base btn-icon"
+                    title="튜토리얼 모드 (기능 설명 보기)"
+                    data-tutorial="toolbar-tutorial-mode"
+                    data-tutorial-bypass="true"
+                    style={{ color: 'var(--accent-yellow)', border: '1px solid rgba(250, 204, 21, 0.3)', backgroundColor: 'rgba(250, 204, 21, 0.05)' }}
+                >
+                    <Sparkles size={18} />
+                </button>
+                <button onClick={() => setShowSettings(!showSettings)} data-tutorial="playtest-physics" className="btn-base" style={{ background: 'var(--accent-blue)', color: '#fff', padding: '6px 12px' }}><Settings2 size={16} /> 설정</button>
+                <button onClick={handleClose} data-tutorial="playtest-exit" className="btn-base" style={{ background: 'var(--accent-red)', color: '#fff', padding: '6px 12px' }}><X size={16} /> 에디터로 돌아가기</button>
             </div>
 
             {/* Settings Overlay - 위치 우측 갱신 */}
             {showSettings && (
                 <div className="panel-base animate-fade-in" style={{ position: 'absolute', top: 60, right: 20, zIndex: 110, padding: 16, width: 320, display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '80vh', overflowY: 'auto' }}>
                     <div style={{ fontWeight: 'bold', fontSize: 13, borderBottom: '1px solid var(--border-light)', paddingBottom: 8 }}>점프 (Jump)</div>
-                    <div>
+                    <div data-tutorial="playtest-param-jump">
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>점프 높이 (최대 타일)</div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input type="range" min="1" max="10" step="0.5" value={maxJumpHeight} onChange={(e) => setMaxJumpHeight(parseFloat(e.target.value))} style={{ flex: 1 }} />
                             <span style={{ fontSize: 12, width: 30, textAlign: 'right' }}>{maxJumpHeight.toFixed(1)}</span>
                         </div>
                     </div>
-                    <div>
+                    <div data-tutorial="playtest-param-airtime">
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>점프 도달 시간 (초)</div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input type="range" min="0.1" max="1.5" step="0.05" value={timeToApex} onChange={(e) => setTimeToApex(parseFloat(e.target.value))} style={{ flex: 1 }} />
@@ -369,21 +382,21 @@ export function PlayTestMode({ roomDetail, onClose, tileColors, settings, onUpda
                     </div>
 
                     <div style={{ fontWeight: 'bold', fontSize: 13, borderBottom: '1px solid var(--border-light)', paddingBottom: 8, marginTop: 8 }}>수평 이동 (Horizontal Movement)</div>
-                    <div>
+                    <div data-tutorial="playtest-param-speed">
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>최고 속도 (타일/초)</div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input type="range" min="1" max="20" step="1" value={maxMoveSpeed} onChange={(e) => setMaxMoveSpeed(parseFloat(e.target.value))} style={{ flex: 1 }} />
                             <span style={{ fontSize: 12, width: 30, textAlign: 'right' }}>{maxMoveSpeed}</span>
                         </div>
                     </div>
-                    <div>
+                    <div data-tutorial="playtest-param-accel">
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>가속 시간 (초)</div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input type="range" min="0" max="1" step="0.05" value={accelerationTime} onChange={(e) => setAccelerationTime(parseFloat(e.target.value))} style={{ flex: 1 }} />
                             <span style={{ fontSize: 12, width: 30, textAlign: 'right' }}>{accelerationTime.toFixed(2)}</span>
                         </div>
                     </div>
-                    <div>
+                    <div data-tutorial="playtest-param-friction">
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>감속 시간 (마찰력, 초)</div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input type="range" min="0" max="1" step="0.05" value={groundFriction} onChange={(e) => setGroundFriction(parseFloat(e.target.value))} style={{ flex: 1 }} />
@@ -392,35 +405,35 @@ export function PlayTestMode({ roomDetail, onClose, tileColors, settings, onUpda
                     </div>
 
                     <div style={{ fontWeight: 'bold', fontSize: 13, borderBottom: '1px solid var(--border-light)', paddingBottom: 8, marginTop: 8 }}>수직 이동/보정 (Vertical & Forgiveness)</div>
-                    <div>
+                    <div data-tutorial="playtest-param-gravity">
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>낙하 중력 배수 (빠른 하강)</div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input type="range" min="1" max="4" step="0.1" value={fallGravityMultiplier} onChange={(e) => setFallGravityMultiplier(parseFloat(e.target.value))} style={{ flex: 1 }} />
                             <span style={{ fontSize: 12, width: 30, textAlign: 'right' }}>{fallGravityMultiplier.toFixed(1)}</span>
                         </div>
                     </div>
-                    <div>
+                    <div data-tutorial="playtest-param-terminal">
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>최대 낙하 속도 (타일/초)</div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input type="range" min="10" max="50" step="1" value={terminalVelocity} onChange={(e) => setTerminalVelocity(parseFloat(e.target.value))} style={{ flex: 1 }} />
                             <span style={{ fontSize: 12, width: 30, textAlign: 'right' }}>{terminalVelocity}</span>
                         </div>
                     </div>
-                    <div>
+                    <div data-tutorial="playtest-param-coyote">
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>코요테 타임 (초)</div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input type="range" min="0" max="0.5" step="0.05" value={coyoteTime} onChange={(e) => setCoyoteTime(parseFloat(e.target.value))} style={{ flex: 1 }} />
                             <span style={{ fontSize: 12, width: 30, textAlign: 'right' }}>{coyoteTime.toFixed(2)}</span>
                         </div>
                     </div>
-                    <div>
+                    <div data-tutorial="playtest-param-buffer">
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>점프 버퍼 (선입력, 초)</div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input type="range" min="0" max="0.5" step="0.05" value={jumpBufferTime} onChange={(e) => setJumpBufferTime(parseFloat(e.target.value))} style={{ flex: 1 }} />
                             <span style={{ fontSize: 12, width: 30, textAlign: 'right' }}>{jumpBufferTime.toFixed(2)}</span>
                         </div>
                     </div>
-                    <div>
+                    <div data-tutorial="playtest-param-sprint">
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>달리기 배수 (Shift, Sprint Speed)</div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input type="range" min="1" max="3" step="0.1" value={sprintSpeedMultiplier} onChange={(e) => setSprintSpeedMultiplier(parseFloat(e.target.value))} style={{ flex: 1 }} />

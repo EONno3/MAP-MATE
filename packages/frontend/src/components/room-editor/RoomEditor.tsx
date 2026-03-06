@@ -493,7 +493,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
           zIndex: 10
         }}>
           {/* Tab Switcher (Tiles / Objects) */}
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', backgroundColor: 'var(--bg-panel-hover)' }}>
+          <div data-tutorial="roomeditor-tabs" style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', backgroundColor: 'var(--bg-panel-hover)' }}>
             <button key="tab-tiles" onClick={() => { setActiveTab('tiles'); handleSelectTile(selectedTile); }} style={{ flex: 1, padding: '12px', border: 'none', background: 'transparent', cursor: 'pointer', color: activeTab === 'tiles' ? 'var(--accent-blue)' : 'var(--text-muted)', borderBottom: activeTab === 'tiles' ? '2px solid var(--accent-blue)' : '2px solid transparent', fontWeight: activeTab === 'tiles' ? 700 : 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.2s' }}>
               <Layers size={16} /> 타일 팔레트
             </button>
@@ -507,14 +507,14 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
             <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
               <Wrench size={14} /> 그리기 도구
             </div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            <div data-tutorial="roomeditor-tools" style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               <button key="tool-brush" onClick={() => { handleSelectTile(selectedTile === 'empty' ? 'solid' : selectedTile); setToolMode('brush') }} className={`btn - base ${toolMode === 'brush' && !selectedObject && selectedTile !== 'empty' ? 'btn-primary' : 'btn-secondary'} `} style={{ flex: 1, padding: '8px' }} title="붙이기 (B)"><PenTool size={14} /></button>
               <button key="tool-eraser" onClick={() => { handleSelectTile('empty'); setToolMode('brush') }} className={`btn - base ${toolMode === 'brush' && !selectedObject && selectedTile === 'empty' ? 'btn-primary' : 'btn-secondary'} `} style={{ flex: 1, padding: '8px', backgroundColor: toolMode === 'brush' && !selectedObject && selectedTile === 'empty' ? 'var(--accent-red)' : undefined }} title="지우개 (E)"><Eraser size={14} /></button>
               <button key="tool-fill" onClick={() => { handleSelectTile(selectedTile); setToolMode('fill') }} className={`btn - base ${toolMode === 'fill' && !selectedObject ? 'btn-primary' : 'btn-secondary'} `} style={{ flex: 1, padding: '8px', backgroundColor: toolMode === 'fill' && !selectedObject ? 'var(--accent-green)' : undefined, color: toolMode === 'fill' && !selectedObject ? '#000' : undefined }} title="채우기 (G)"><Square size={14} /></button>
             </div>
 
             {!selectedObject && toolMode === 'brush' && (
-              <div style={{ marginBottom: 16 }}>
+              <div data-tutorial="roomeditor-brush-size" style={{ marginBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>브러시 크기</span>
                   <span style={{ fontSize: 11, color: '#fff', fontWeight: 600, backgroundColor: 'var(--accent-blue)', padding: '2px 6px', borderRadius: 4 }}>{brushSize}×{brushSize}</span>
@@ -529,7 +529,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
             {activeTab === 'tiles' && (
               <div className="animate-fade-in">
                 {/* AI Generation Section (Tile specific) */}
-                <div style={{ marginBottom: 16, padding: 12, backgroundColor: 'rgba(124, 58, 237, 0.05)', borderRadius: 'var(--border-radius-md)', border: '1px solid var(--border-light)' }}>
+                <div data-tutorial="roomeditor-ai" style={{ marginBottom: 16, padding: 12, backgroundColor: 'rgba(124, 58, 237, 0.05)', borderRadius: 'var(--border-radius-md)', border: '1px solid var(--border-light)' }}>
                   <div style={{ fontSize: 11, color: 'var(--accent-indigo)', marginBottom: 8, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Bot size={14} /> AI 맵 생성 (현재 영역 덮어쓰기)
                   </div>
@@ -543,7 +543,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
                 <TilePalette selectedTile={selectedTile} onSelectTile={handleSelectTile} tileColors={tileColorMap as any} t={t} tiles={tileItems.map((it) => ({ key: it.key, color: it.color, label: it.label }))} />
 
                 {/* Tile Mgmt */}
-                <div style={{ marginTop: 12, padding: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 'var(--border-radius-md)' }}>
+                <div data-tutorial="roomeditor-tile-mgr" style={{ marginTop: 12, padding: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 'var(--border-radius-md)' }}>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Palette size={14} /> 타일 색상/이름 관리
                   </div>
@@ -562,7 +562,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
                       </div>
                     ))}
                   </div>
-                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #333' }}>
+                  <div data-tutorial="roomeditor-tile-add" style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #333' }}>
                     <div style={{ fontSize: 11, color: '#888', marginBottom: 8, fontWeight: 600 }}>➕ 새 타일 추가</div>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                       <input value={newTileName} onChange={(e) => setNewTileName(e.target.value)} placeholder="타일명" style={{ flex: 1, padding: '6px 8px', background: '#1a1a24', border: '1px solid #444', borderRadius: 6, color: '#fff', fontSize: 11 }} />
@@ -570,7 +570,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
                     </div>
                     <button onClick={() => { addTile({ color: newTileColor, name: newTileName || undefined }); setNewTileName(''); }} style={{ width: '100%', padding: '8px', backgroundColor: '#3b82f6', border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>새 타일 추가</button>
                   </div>
-                  <button onClick={resetTileCatalog} className="btn-base btn-secondary" style={{ width: '100%', marginTop: 10, padding: '8px' }}>초기화</button>
+                  <button data-tutorial="roomeditor-tile-reset" onClick={resetTileCatalog} className="btn-base btn-secondary" style={{ width: '100%', marginTop: 10, padding: '8px' }}>초기화</button>
                 </div>
               </div>
             )}
@@ -582,7 +582,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
             )}
 
             {/* Hint Footer */}
-            <div style={{ marginTop: 24, padding: 12, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 'var(--border-radius-sm)', fontSize: 11, color: 'var(--text-muted)' }}>
+            <div data-tutorial="roomeditor-hints" style={{ marginTop: 24, padding: 12, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 'var(--border-radius-sm)', fontSize: 11, color: 'var(--text-muted)' }}>
               <div style={{ marginBottom: 6, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: 4 }}><Lightbulb size={14} /> 단축키 팁</div>
               <div>• B: 붙이기 / E: 지우기 / G: 채우기</div>
               <div>• Spacebar + 드래그: 지도 이동</div>
@@ -626,7 +626,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
               </button>
             </div>
 
-            <button key="btn-playtest" onClick={() => setIsPlayingTest(true)} className="btn-base" style={{ width: '100%', padding: '8px', backgroundColor: 'var(--accent-green)', color: '#000', fontWeight: 'bold' }}>
+            <button key="btn-playtest" data-tutorial="roomeditor-playtest" onClick={() => setIsPlayingTest(true)} className="btn-base" style={{ width: '100%', padding: '8px', backgroundColor: 'var(--accent-green)', color: '#000', fontWeight: 'bold' }}>
               <Play size={16} fill="#000" /> 플레이 테스트
             </button>
 
@@ -640,7 +640,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
           <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
             {/* Properties / Tag Editor */}
             {selectedObjectData && (
-              <div className="animate-fade-in" style={{ marginBottom: 16 }}>
+              <div data-tutorial="roomeditor-properties" className="animate-fade-in" style={{ marginBottom: 16 }}>
                 <TagEditor
                   object={selectedObjectData}
                   onUpdate={handleUpdateObjectProperties}
@@ -650,7 +650,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
             )}
 
             {/* Layers Area */}
-            <div style={{ fontSize: 12, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border-light)' }}>
+            <div data-tutorial="roomeditor-layers" style={{ fontSize: 12, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border-light)' }}>
               <Layers size={14} /> 레이어 관리
             </div>
 
@@ -695,6 +695,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
                     <div key={layer.id} onClick={() => setActiveLayerId(layer.id)} style={{ padding: 12, backgroundColor: activeLayerId === layer.id ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255,255,255,0.03)', border: activeLayerId === layer.id ? '1px solid var(--accent-blue)' : '1px solid var(--border-light)', borderRadius: 'var(--border-radius-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <button
+                          data-tutorial="roomeditor-layer-order"
                           disabled={!canMoveUp}
                           onClick={(e) => {
                             e.stopPropagation()
@@ -744,24 +745,28 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <button onClick={(e) => {
-                          e.stopPropagation()
-                          const newLayers = roomDetail.layers.map(l => l.id === layer.id ? { ...l, visible: !l.visible } : l)
-                          setRoomDetailHistory({ ...roomDetail, layers: newLayers })
-                          setHasChanges(true)
-                        }} className="btn-base" style={{ padding: 6, background: 'transparent', color: layer.visible ? '#fff' : 'var(--text-muted)' }} title={layer.visible ? "숨기기" : "보이기"}>
+                        <button
+                          data-tutorial="roomeditor-layer-visibility"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const newLayers = roomDetail.layers.map(l => l.id === layer.id ? { ...l, visible: !l.visible } : l)
+                            setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                            setHasChanges(true)
+                          }} className="btn-base" style={{ padding: 6, background: 'transparent', color: layer.visible ? '#fff' : 'var(--text-muted)' }} title={layer.visible ? "숨기기" : "보이기"}>
                           {layer.visible ? <Eye size={16} /> : <EyeOff size={16} />}
                         </button>
-                        <button onClick={(e) => {
-                          e.stopPropagation()
-                          if (roomDetail.layers.length <= 1) return alert('최소 1개의 레이어가 필요합니다.')
-                          if (confirm(`'${layer.name}' 레이어를 삭제할까요 ? `)) {
-                            const newLayers = roomDetail.layers.filter(l => l.id !== layer.id)
-                            setRoomDetailHistory({ ...roomDetail, layers: newLayers })
-                            if (activeLayerId === layer.id) setActiveLayerId(newLayers[newLayers.length - 1].id)
-                            setHasChanges(true)
-                          }
-                        }} className="btn-base" style={{ padding: 6, color: 'var(--accent-red)', background: 'transparent' }} title="삭제">
+                        <button
+                          data-tutorial="roomeditor-layer-delete"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (roomDetail.layers.length <= 1) return alert('최소 1개의 레이어가 필요합니다.')
+                            if (confirm(`'${layer.name}' 레이어를 삭제할까요 ? `)) {
+                              const newLayers = roomDetail.layers.filter(l => l.id !== layer.id)
+                              setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                              if (activeLayerId === layer.id) setActiveLayerId(newLayers[newLayers.length - 1].id)
+                              setHasChanges(true)
+                            }
+                          }} className="btn-base" style={{ padding: 6, color: 'var(--accent-red)', background: 'transparent' }} title="삭제">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -778,7 +783,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
                     <div style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 12 }}>{activeLayer.name} 속성</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>불투명도</span>
-                      <input type="range" min="0" max="1" step="0.1" value={activeLayer.opacity} onChange={(e) => {
+                      <input data-tutorial="roomeditor-layer-opacity" type="range" min="0" max="1" step="0.1" value={activeLayer.opacity} onChange={(e) => {
                         const newLayers = roomDetail.layers.map(l => l.id === activeLayer.id ? { ...l, opacity: parseFloat(e.target.value) } : l)
                         setRoomDetailHistory({ ...roomDetail, layers: newLayers })
                         setHasChanges(true)

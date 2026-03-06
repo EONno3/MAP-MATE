@@ -349,6 +349,7 @@ export default function App() {
           t={t}
           tileCatalog={tileCatalog}
         />
+        <TutorialOverlay isActive={isTutorialMode} onExit={() => setIsTutorialMode(false)} language="ko" />
       </div>
     )
   }

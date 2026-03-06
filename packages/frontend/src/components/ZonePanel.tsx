@@ -79,6 +79,7 @@ export function ZonePanel({
       <button
         onClick={onToggle}
         className="panel-base"
+        data-tutorial="zone-panel"
         style={{
           position: 'absolute',
           bottom: 24,
@@ -220,6 +221,7 @@ export function ZonePanel({
               onClick={() => handleDeleteZone(Number(zoneId))}
               disabled={zoneCount <= 1}
               className="btn-icon"
+              data-tutorial="zone-delete"
               style={{
                 color: zoneCount <= 1 ? 'var(--text-disabled)' : 'var(--accent-red)',
                 padding: 4
@@ -253,6 +255,7 @@ export function ZonePanel({
         <button
           onClick={handleAddZone}
           className="btn-base btn-primary"
+          data-tutorial="zone-add"
           style={{ padding: '8px 16px' }}
         >
           <Plus size={16} />

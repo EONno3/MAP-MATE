@@ -46,7 +46,7 @@ export function ObjectPalette({ selectedObject, onSelectObject, t }: ObjectPalet
   }
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div data-tutorial="roomeditor-objects" style={{ marginBottom: 20 }}>
       <div style={{
         fontSize: 11,
         fontWeight: 600,

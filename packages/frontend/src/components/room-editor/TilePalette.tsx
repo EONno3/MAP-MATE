@@ -30,7 +30,7 @@ export function TilePalette({ selectedTile, onSelectTile, tileColors, t, tiles }
   const displayTiles = tiles ?? TILES.map((k) => ({ key: k, label: getTileName(k), color: (tileColors?.[k] ?? TILE_COLORS[k]) as string }))
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div data-tutorial="roomeditor-tiles" style={{ marginBottom: 20 }}>
       <div style={{
         fontSize: 11,
         fontWeight: 600,

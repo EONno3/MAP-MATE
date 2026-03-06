@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Translations } from '../../i18n/translations'
 import { Room, Zone } from '../../types/map'
-import { ArrowLeft, RotateCcw, Save, AlertTriangle, Undo2, Redo2, RefreshCw } from 'lucide-react'
+import { ArrowLeft, RotateCcw, Save, AlertTriangle, Undo2, Redo2, RefreshCw, Sparkles } from 'lucide-react'
 
 interface RoomToolbarProps {
   room: Room
@@ -109,11 +109,25 @@ export function RoomToolbar({
       {/* History Controls */}
       <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
         <button
+          onClick={() => {
+            const event = new CustomEvent('toggle-tutorial-mode')
+            window.dispatchEvent(event)
+          }}
+          className="btn-base btn-icon"
+          title="튜토리얼 모드 (기능 설명 보기)"
+          data-tutorial="toolbar-tutorial-mode"
+          data-tutorial-bypass="true"
+          style={{ color: 'var(--accent-yellow)', border: '1px solid rgba(250, 204, 21, 0.3)', backgroundColor: 'rgba(250, 204, 21, 0.05)' }}
+        >
+          <Sparkles size={18} />
+        </button>
+        <button
           onClick={onUndo}
           disabled={!canUndo}
-          className="btn-base btn-icon"
-          title={`${t.undo} (Ctrl+Z)`}
-          data-tutorial="toolbar-undo"
+          className="btn-base"
+          style={{ padding: '6px', opacity: canUndo ? 1 : 0.3 }}
+          title={t.undo}
+          data-tutorial="roomeditor-undo"
         >
           <Undo2 size={16} />
         </button>

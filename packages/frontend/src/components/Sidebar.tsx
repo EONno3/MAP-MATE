@@ -131,6 +131,7 @@ export function Sidebar({
             {t.connectionCondition}
           </label>
           <select
+            data-tutorial="sidebar-connection-condition"
             value={conn.condition}
             onChange={(e) => {
               if (onUpdateConnection) {
@@ -198,6 +199,7 @@ export function Sidebar({
 
         {/* 삭제 버튼 */}
         <button
+          data-tutorial="sidebar-connection-delete"
           onClick={() => {
             if (onDeleteConnection) {
               onDeleteConnection(selectedConnection.fromId, selectedConnection.toId)
@@ -275,6 +277,7 @@ export function Sidebar({
           marginBottom: 16
         }}>
           <button
+            data-tutorial="sidebar-copy"
             onClick={onCopySelectedRooms}
             className="btn-base btn-primary"
             style={{ flex: 1, padding: '10px' }}
@@ -282,6 +285,7 @@ export function Sidebar({
             <Copy size={16} /> 복사 (Ctrl+C)
           </button>
           <button
+            data-tutorial="sidebar-paste"
             onClick={onPasteRooms}
             disabled={clipboard.length === 0}
             className={`btn-base ${clipboard.length > 0 ? 'btn-primary' : 'btn-secondary'}`}
@@ -382,6 +386,7 @@ export function Sidebar({
 
         {/* 일괄 삭제 버튼 */}
         <button
+          data-tutorial="sidebar-delete-all"
           onClick={onDeleteSelectedRooms}
           className="btn-base btn-danger"
           style={{ width: '100%', padding: '10px', marginTop: 20 }}
@@ -516,6 +521,7 @@ export function Sidebar({
       {/* Edit Detail Button */}
       {onEditDetail && (
         <button
+          data-tutorial="room-edit-detail"
           onClick={() => onEditDetail(selectedRoom.id)}
           className="btn-base btn-primary"
           style={{ width: '100%', padding: '10px', marginBottom: 20 }}
@@ -527,7 +533,7 @@ export function Sidebar({
       )}
 
       {/* Room Type */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }} data-tutorial="sidebar-room-info">
         <label style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
           {t.roomType}
         </label>
@@ -540,7 +546,7 @@ export function Sidebar({
       </div>
 
       {/* Zone Selection */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }} data-tutorial="sidebar-room-info">
         <label style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
           {t.assignZone}
         </label>
@@ -587,7 +593,7 @@ export function Sidebar({
       </div>
 
       {/* Position */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }} data-tutorial="sidebar-room-info">
         <label style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
           {t.position}
         </label>
@@ -649,7 +655,7 @@ export function Sidebar({
       </div>
 
       {/* Size */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }} data-tutorial="sidebar-room-info">
         <label style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
           {t.size}
         </label>
@@ -825,6 +831,7 @@ export function Sidebar({
 
       {/* Delete Button */}
       <button
+        data-tutorial="room-delete"
         onClick={() => onDeleteRoom(selectedRoom.id)}
         className="btn-base btn-danger"
         style={{ width: '100%', padding: '10px', marginTop: 20 }}

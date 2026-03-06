@@ -704,6 +704,7 @@ export function RoomCanvas({
   return (
     <div
       ref={containerRef}
+      data-tutorial="canvas-view"
       style={{
         flex: 1,
         position: 'relative',
