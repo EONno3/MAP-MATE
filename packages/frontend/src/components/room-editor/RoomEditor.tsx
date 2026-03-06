@@ -471,6 +471,11 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
         onBack={handleBack}
         onSave={handleSave}
         onReset={handleReset}
+        hasUnsavedChanges={hasChanges}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
         t={t}
       />
 

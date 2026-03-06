@@ -14,7 +14,8 @@ import {
   PenTool,
   Link,
   HelpCircle,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Sparkles
 } from 'lucide-react'
 
 interface ToolbarProps {
@@ -107,6 +108,7 @@ export function Toolbar({
         onClick={onGenerate}
         disabled={disableGenerate}
         className="btn-base btn-primary"
+        data-tutorial="toolbar-generate"
       >
         {loading ? (
           <>
@@ -125,6 +127,7 @@ export function Toolbar({
         onClick={onImport}
         disabled={disableImport}
         className="btn-base btn-secondary"
+        data-tutorial="toolbar-import"
       >
         <FolderOpen size={16} />
         {t.importJson}
@@ -134,6 +137,7 @@ export function Toolbar({
         onClick={onExport}
         disabled={disableExport}
         className="btn-base btn-secondary"
+        data-tutorial="toolbar-export"
       >
         <Save size={16} />
         {t.exportJson}
@@ -143,6 +147,7 @@ export function Toolbar({
         onClick={onExportUnity}
         disabled={disableExport}
         className="btn-base btn-secondary"
+        data-tutorial="toolbar-export-unity"
       >
         <Puzzle size={16} />
         {t.exportUnity}
@@ -169,6 +174,7 @@ export function Toolbar({
           disabled={!canUndo || disableEditActions}
           className="btn-base btn-icon"
           title={`${t.undo} (Ctrl+Z)`}
+          data-tutorial="toolbar-undo"
         >
           <Undo2 size={18} />
         </button>
@@ -177,6 +183,7 @@ export function Toolbar({
           disabled={!canRedo || disableEditActions}
           className="btn-base btn-icon"
           title={`${t.redo} (Ctrl+Y)`}
+          data-tutorial="toolbar-redo"
         >
           <Redo2 size={18} />
         </button>
@@ -193,6 +200,7 @@ export function Toolbar({
             title={t.toolSelect}
             className={`btn-base btn-icon ${currentTool === 'select' ? 'active' : ''}`}
             style={{ padding: '6px 12px', gap: 6 }}
+            data-tutorial="toolbar-tool-select"
           >
             <MousePointer2 size={16} />
             {t.toolSelect}
@@ -203,6 +211,7 @@ export function Toolbar({
             title={t.toolDraw}
             className={`btn-base btn-icon ${currentTool === 'draw' ? 'active' : ''}`}
             style={{ padding: '6px 12px', gap: 6 }}
+            data-tutorial="toolbar-tool-draw"
           >
             <PenTool size={16} />
             {t.toolDraw}
@@ -213,6 +222,7 @@ export function Toolbar({
             title={t.toolConnect}
             className={`btn-base btn-icon ${currentTool === 'connect' ? 'active' : ''}`}
             style={{ padding: '6px 12px', gap: 6 }}
+            data-tutorial="toolbar-tool-connect"
           >
             <Link size={16} />
             {t.toolConnect}
@@ -224,9 +234,28 @@ export function Toolbar({
 
       {/* Help & Stats */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <button className="btn-base btn-icon" title="단축키 및 도움말" onClick={() => window.dispatchEvent(new Event('toggle-help-modal'))}>
-          <HelpCircle size={18} />
-        </button>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {/* Tutorial Mode Toggle Button */}
+          <button
+            className="btn-base btn-icon"
+            title="튜토리얼 모드 (기능 설명 보기)"
+            onClick={() => window.dispatchEvent(new Event('toggle-tutorial-mode'))}
+            data-tutorial="toolbar-tutorial-mode"
+            data-tutorial-bypass="true"
+            style={{ color: 'var(--accent-yellow)', border: '1px solid rgba(250, 204, 21, 0.3)', backgroundColor: 'rgba(250, 204, 21, 0.05)' }}
+          >
+            <Sparkles size={18} />
+          </button>
+
+          <button
+            className="btn-base btn-icon"
+            title="단축키 및 도움말"
+            onClick={() => window.dispatchEvent(new Event('toggle-help-modal'))}
+            data-tutorial="toolbar-help"
+          >
+            <HelpCircle size={18} />
+          </button>
+        </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
           <span>{t.rooms}: <strong style={{ color: 'var(--text-main)' }}>{roomCount}</strong></span>
         </div>

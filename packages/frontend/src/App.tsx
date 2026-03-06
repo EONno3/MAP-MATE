@@ -14,16 +14,18 @@ import { buildUnityExportV1 } from './lib/unityExportV1'
 import { useTileCatalog } from './hooks/useTileCatalog'
 import { HelpModal } from './components/HelpModal'
 import { Loader2, Map, Upload, Edit2, Copy, Trash2, X } from 'lucide-react'
-
-type EditMode = 'world' | 'room'
+import { TutorialOverlay } from './components/TutorialOverlay'
 
 export default function App() {
   const BUILD_ID = 'fix-undo-ui-20260202'
   const [paramPanelOpen, setParamPanelOpen] = useState(true)
   const [zonePanelOpen, setZonePanelOpen] = useState(false)
-  const [editMode, setEditMode] = useState<EditMode>('world')
+  const [editMode, setEditMode] = useState<'world' | 'room'>('world')
   const [editingRoom, setEditingRoom] = useState<Room | null>(null)
   const [currentTool, setCurrentTool] = useState<EditorTool>('select')
+
+  // Tutorial State
+  const [isTutorialMode, setIsTutorialMode] = useState(false)
 
   // 언어 토글 제거: UI/타일명은 한국어 기준으로 고정
   const t: Translations = translations.ko
@@ -79,6 +81,13 @@ export default function App() {
   useEffect(() => {
     fetchMap()
   }, [])
+
+  // Listen for tutorial mode toggle event
+  useEffect(() => {
+    const handleToggleTutorial = () => setIsTutorialMode(prev => !prev);
+    window.addEventListener('toggle-tutorial-mode', handleToggleTutorial);
+    return () => window.removeEventListener('toggle-tutorial-mode', handleToggleTutorial);
+  }, []);
 
   // 전역 키보드 단축키
   useEffect(() => {
@@ -611,8 +620,9 @@ export default function App() {
         </div>
       )}
 
-      {/* Modals */}
+      {/* Modals & Overlays */}
       <HelpModal t={t} />
+      <TutorialOverlay isActive={isTutorialMode} onExit={() => setIsTutorialMode(false)} language="ko" />
     </div>
   )
 }
