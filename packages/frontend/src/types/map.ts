@@ -195,12 +195,26 @@ export type GateCondition =
   | 'tram_pass'
   | 'event_lock'
 
+export interface PlayTestSettings {
+  maxJumpHeight?: number
+  timeToApex?: number
+  maxMoveSpeed?: number
+  accelerationTime?: number
+  groundFriction?: number
+  fallGravityMultiplier?: number
+  terminalVelocity?: number
+  coyoteTime?: number
+  jumpBufferTime?: number
+  sprintSpeedMultiplier?: number
+}
+
 export interface MapData {
   width: number
   height: number
   rooms: Room[]
   zones: Record<number, Zone>
   connections?: Connection[]
+  settings?: PlayTestSettings
 }
 
 export interface CanvasTransform {

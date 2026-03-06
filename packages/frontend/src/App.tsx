@@ -8,7 +8,7 @@ import { ZonePanel } from './components/ZonePanel'
 import { useMapState } from './hooks/useMapState'
 import { getMapInteractionNotice, getMapInteractionState } from './lib/interactionState'
 import { translations, Translations } from './i18n/translations'
-import { Room, EditorTool } from './types/map'
+import { Room, EditorTool, PlayTestSettings } from './types/map'
 import { parseImportedMapJson } from './lib/mapSerialization'
 import { buildUnityExportV1 } from './lib/unityExportV1'
 import { useTileCatalog } from './hooks/useTileCatalog'
@@ -275,6 +275,12 @@ export default function App() {
     setEditingRoom(updatedRoom)
   }, [updateRoom])
 
+  // Save map settings from playtest mode
+  const handleUpdateMapSettings = useCallback((settings: PlayTestSettings) => {
+    if (!mapData) return
+    setMapData({ ...mapData, settings })
+  }, [mapData, setMapData])
+
   // Handle double click on room to enter editor
   const handleDoubleClickRoom = useCallback((roomId: number) => {
     enterRoomEditor(roomId)
@@ -330,6 +336,7 @@ export default function App() {
           connections={connections}
           onBack={exitRoomEditor}
           onSave={handleSaveRoom}
+          onUpdateMapSettings={handleUpdateMapSettings}
           t={t}
           tileCatalog={tileCatalog}
         />

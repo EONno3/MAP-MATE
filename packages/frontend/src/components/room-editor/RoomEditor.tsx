@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Room, RoomDetail, Zone, TileType, ObjectType, RoomObject, TILE_SIZE, TILES_PER_CHUNK_Y, TILES_PER_CHUNK_X, OBJECT_ICONS, Connection, MapData } from '../../types/map'
+import { Room, RoomDetail, Zone, TileType, ObjectType, RoomObject, TILE_SIZE, TILES_PER_CHUNK_Y, TILES_PER_CHUNK_X, OBJECT_ICONS, Connection, MapData, PlayTestSettings } from '../../types/map'
 import { Translations } from '../../i18n/translations'
 import { Undo2, Redo2, Layers, PenTool, Eraser, Square, Wrench, Plus, ChevronUp, ChevronDown, Play, AlertTriangle, Box, Lightbulb, Bot, Palette, Loader2, Eye, EyeOff, Trash2 } from 'lucide-react'
 import { RoomToolbar } from './RoomToolbar'
@@ -23,6 +23,7 @@ interface RoomEditorProps {
   connections?: Connection[]
   onBack: () => void
   onSave: (room: Room) => void
+  onUpdateMapSettings?: (settings: PlayTestSettings) => void
   t: Translations
   tileCatalog: TileCatalogApi
 }
@@ -84,7 +85,7 @@ const OBJECT_WHEEL_ITEMS: RadialMenuItem[] = [
   { id: 'transition', label: '방 전환', icon: OBJECT_ICONS.transition, color: '#ec4899' }
 ]
 
-export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t, tileCatalog }: RoomEditorProps) {
+export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, onUpdateMapSettings, t, tileCatalog }: RoomEditorProps) {
   // Initialize room detail with history
   const {
     state: roomDetail,
@@ -819,7 +820,13 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
       />
 
       {isPlayingTest && (
-        <PlayTestMode roomDetail={roomDetail} onClose={() => setIsPlayingTest(false)} tileColors={tileColorMap as any} />
+        <PlayTestMode
+          roomDetail={roomDetail}
+          onClose={() => setIsPlayingTest(false)}
+          tileColors={tileColorMap as any}
+          settings={mapData?.settings}
+          onUpdateSettings={onUpdateMapSettings}
+        />
       )}
     </div>
   )

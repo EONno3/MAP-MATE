@@ -1,30 +1,47 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { RoomDetail, TILE_SIZE, TileType, UNITY_COMPONENT_MAP } from '../../types/map'
+import { RoomDetail, TILE_SIZE, TileType, UNITY_COMPONENT_MAP, PlayTestSettings } from '../../types/map'
 import { X, Play, Settings2 } from 'lucide-react'
 
 interface PlayTestModeProps {
     roomDetail: RoomDetail
     onClose: () => void
     tileColors: Record<string, string>
+    settings?: PlayTestSettings
+    onUpdateSettings?: (settings: PlayTestSettings) => void
 }
 
 const PLAYER_SIZE = 24
 
-export function PlayTestMode({ roomDetail, onClose, tileColors }: PlayTestModeProps) {
+export function PlayTestMode({ roomDetail, onClose, tileColors, settings, onUpdateSettings }: PlayTestModeProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [showSettings, setShowSettings] = useState(true)
-    const [maxJumpHeight, setMaxJumpHeight] = useState(3) // 타일 단위
-    const [timeToApex, setTimeToApex] = useState(0.4) // 초 단위
+    const [maxJumpHeight, setMaxJumpHeight] = useState(settings?.maxJumpHeight ?? 3) // 타일 단위
+    const [timeToApex, setTimeToApex] = useState(settings?.timeToApex ?? 0.4) // 초 단위
 
     // Phase 2 파라미터들
-    const [maxMoveSpeed, setMaxMoveSpeed] = useState(8) // 초당 이동 타일 수
-    const [accelerationTime, setAccelerationTime] = useState(0.1) // 최고속도 도달 시간(초)
-    const [groundFriction, setGroundFriction] = useState(0.1) // 감속 시간(초)
-    const [fallGravityMultiplier, setFallGravityMultiplier] = useState(1.5) // 낙하 시 중력 배수
-    const [terminalVelocity, setTerminalVelocity] = useState(25) // 최대 낙하 속도 (타일/초)
+    const [maxMoveSpeed, setMaxMoveSpeed] = useState(settings?.maxMoveSpeed ?? 8) // 초당 이동 타일 수
+    const [accelerationTime, setAccelerationTime] = useState(settings?.accelerationTime ?? 0.1) // 최고속도 도달 시간(초)
+    const [groundFriction, setGroundFriction] = useState(settings?.groundFriction ?? 0.1) // 감속 시간(초)
+    const [fallGravityMultiplier, setFallGravityMultiplier] = useState(settings?.fallGravityMultiplier ?? 1.5) // 낙하 시 중력 배수
+    const [terminalVelocity, setTerminalVelocity] = useState(settings?.terminalVelocity ?? 25) // 최대 낙하 속도 (타일/초)
 
-    const [coyoteTime, setCoyoteTime] = useState(0.1) // 코요테 타임 (초)
-    const [jumpBufferTime, setJumpBufferTime] = useState(0.1) // 점프 버퍼 (초)
+    const [coyoteTime, setCoyoteTime] = useState(settings?.coyoteTime ?? 0.1) // 코요테 타임 (초)
+    const [jumpBufferTime, setJumpBufferTime] = useState(settings?.jumpBufferTime ?? 0.1) // 점프 버퍼 (초)
+
+    // Phase 4 파라미터
+    const [sprintSpeedMultiplier, setSprintSpeedMultiplier] = useState(settings?.sprintSpeedMultiplier ?? 1.5) // 달리기 배수
+
+    const handleClose = () => {
+        if (onUpdateSettings) {
+            onUpdateSettings({
+                maxJumpHeight, timeToApex, maxMoveSpeed, accelerationTime, groundFriction,
+                fallGravityMultiplier, terminalVelocity, coyoteTime, jumpBufferTime, sprintSpeedMultiplier
+            })
+        }
+        onClose()
+    }
+
+
 
     const physicsRef = useRef({
         gravity: 0,
@@ -35,7 +52,8 @@ export function PlayTestMode({ roomDetail, onClose, tileColors }: PlayTestModePr
         fallGravityMultiplier,
         terminalVelocity: 0,
         coyoteTime,
-        jumpBufferTime
+        jumpBufferTime,
+        sprintSpeedMultiplier
     })
 
     useEffect(() => {
@@ -58,9 +76,10 @@ export function PlayTestMode({ roomDetail, onClose, tileColors }: PlayTestModePr
             fallGravityMultiplier,
             terminalVelocity: terminalVelPx,
             coyoteTime,
-            jumpBufferTime
+            jumpBufferTime,
+            sprintSpeedMultiplier
         }
-    }, [maxJumpHeight, timeToApex, maxMoveSpeed, accelerationTime, groundFriction, fallGravityMultiplier, terminalVelocity, coyoteTime, jumpBufferTime])
+    }, [maxJumpHeight, timeToApex, maxMoveSpeed, accelerationTime, groundFriction, fallGravityMultiplier, terminalVelocity, coyoteTime, jumpBufferTime, sprintSpeedMultiplier])
 
     // Game state
     const stateRef = useRef({
@@ -178,12 +197,17 @@ export function PlayTestMode({ roomDetail, onClose, tileColors }: PlayTestModePr
                 if (st.keys['ArrowLeft'] || st.keys['a']) moveInput -= 1
                 if (st.keys['ArrowRight'] || st.keys['d']) moveInput += 1
 
+                const isSprinting = st.keys['Shift']
+                const currentMultiplier = isSprinting ? p.sprintSpeedMultiplier : 1
+                const currentMaxSpeed = p.maxMoveSpeed * currentMultiplier
+                const currentAcceleration = p.acceleration * currentMultiplier
+
                 if (moveInput !== 0) {
                     // 가속
-                    st.vx += moveInput * p.acceleration * dt
+                    st.vx += moveInput * currentAcceleration * dt
                     // 최대 속도 클램프
-                    if (Math.abs(st.vx) > p.maxMoveSpeed) {
-                        st.vx = Math.sign(st.vx) * p.maxMoveSpeed
+                    if (Math.abs(st.vx) > currentMaxSpeed) {
+                        st.vx = Math.sign(st.vx) * currentMaxSpeed
                     }
                 } else {
                     // 감속 (마찰력)
@@ -321,13 +345,13 @@ export function PlayTestMode({ roomDetail, onClose, tileColors }: PlayTestModePr
                 <div style={{ background: 'var(--accent-green)', fontWeight: 'bold', color: '#000', padding: '6px 16px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Play size={16} fill="#000" /> 플레이 테스트 모드
                 </div>
-                <button onClick={() => setShowSettings(!showSettings)} className="btn-base" style={{ background: 'var(--bg-panel)', padding: '6px 12px' }}><Settings2 size={16} /> 설정</button>
-                <button onClick={onClose} className="btn-base" style={{ background: 'var(--accent-red)', color: '#fff', padding: '6px 12px' }}><X size={16} /> 에디터로 돌아가기</button>
+                <button onClick={() => setShowSettings(!showSettings)} className="btn-base" style={{ background: 'var(--accent-blue)', color: '#fff', padding: '6px 12px' }}><Settings2 size={16} /> 설정</button>
+                <button onClick={handleClose} className="btn-base" style={{ background: 'var(--accent-red)', color: '#fff', padding: '6px 12px' }}><X size={16} /> 에디터로 돌아가기</button>
             </div>
 
-            {/* Settings Overlay */}
+            {/* Settings Overlay - 위치 우측 갱신 */}
             {showSettings && (
-                <div className="panel-base animate-fade-in" style={{ position: 'absolute', top: 60, zIndex: 110, padding: 16, width: 320, display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '80vh', overflowY: 'auto' }}>
+                <div className="panel-base animate-fade-in" style={{ position: 'absolute', top: 60, right: 20, zIndex: 110, padding: 16, width: 320, display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '80vh', overflowY: 'auto' }}>
                     <div style={{ fontWeight: 'bold', fontSize: 13, borderBottom: '1px solid var(--border-light)', paddingBottom: 8 }}>점프 (Jump)</div>
                     <div>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>점프 높이 (최대 타일)</div>
@@ -394,6 +418,13 @@ export function PlayTestMode({ roomDetail, onClose, tileColors }: PlayTestModePr
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input type="range" min="0" max="0.5" step="0.05" value={jumpBufferTime} onChange={(e) => setJumpBufferTime(parseFloat(e.target.value))} style={{ flex: 1 }} />
                             <span style={{ fontSize: 12, width: 30, textAlign: 'right' }}>{jumpBufferTime.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>달리기 배수 (Shift, Sprint Speed)</div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <input type="range" min="1" max="3" step="0.1" value={sprintSpeedMultiplier} onChange={(e) => setSprintSpeedMultiplier(parseFloat(e.target.value))} style={{ flex: 1 }} />
+                            <span style={{ fontSize: 12, width: 30, textAlign: 'right' }}>x{sprintSpeedMultiplier.toFixed(1)}</span>
                         </div>
                     </div>
                 </div>
