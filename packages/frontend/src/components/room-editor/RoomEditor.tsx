@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
-import { Room, Zone, MapData, RoomDetail, TileType, ObjectType, RoomObject, TILES_PER_CHUNK_X, TILES_PER_CHUNK_Y, OBJECT_ICONS, Connection } from '../../types/map'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Room, RoomDetail, Zone, TileType, ObjectType, RoomObject, TILE_SIZE, TILES_PER_CHUNK_Y, TILES_PER_CHUNK_X, OBJECT_ICONS, Connection, MapData } from '../../types/map'
 import { Translations } from '../../i18n/translations'
+import { Undo2, Redo2, Layers, PenTool, Eraser, Square, Wrench, Plus, ChevronUp, ChevronDown, Play, AlertTriangle, Box, Lightbulb, Bot, Palette, Loader2, Eye, EyeOff, Trash2 } from 'lucide-react'
 import { RoomToolbar } from './RoomToolbar'
 import { RoomCanvas, RoomToolMode } from './RoomCanvas'
 import { TilePalette } from './TilePalette'
@@ -12,8 +13,6 @@ import { useHistory } from '../../hooks/useHistory'
 import { RadialMenu, RadialMenuItem } from '../RadialMenu'
 import type { TileCatalogApi } from '../../hooks/useTileCatalog'
 import { selectTileKeyByDigitHotkey } from '../../lib/tileHotkeys'
-import { Undo2, Redo2, Bot, Palette, Box, PenTool, Wrench, Square, Ruler, Plus, Loader2, Lightbulb, AlertTriangle, Eraser, Layers, Play } from 'lucide-react'
-
 // API URL
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -202,7 +201,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
 
     setAiLoading(true)
     try {
-      const response = await fetch(`${API_URL}/generate/room-detail`, {
+      const response = await fetch(`${API_URL} /generate/room - detail`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -215,7 +214,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
       })
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`)
+        throw new Error(`Server error: ${response.status} `)
       }
 
       const data = await response.json()
@@ -278,14 +277,34 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
   // Tool selection - when object is selected, deselect tile mode
   const handleSelectObject = useCallback((obj: ObjectType | null) => {
     setSelectedObject(obj)
-    if (obj) setActiveTab('objects')
-  }, [])
+    if (obj) {
+      setActiveTab('objects')
+
+      // Auto-switch to an object layer if current is not
+      setActiveLayerId(prevId => {
+        const currentLayer = roomDetail.layers.find(l => l.id === prevId)
+        if (currentLayer && currentLayer.type === 'object') return prevId
+
+        const objLayer = roomDetail.layers.find(l => l.type === 'object')
+        return objLayer ? objLayer.id : prevId
+      })
+    }
+  }, [roomDetail.layers])
 
   const handleSelectTile = useCallback((tile: TileType) => {
     setSelectedTile(tile)
     setSelectedObject(null) // Deselect object when switching to tile mode
     setActiveTab('tiles')
-  }, [])
+
+    // Auto-switch to a tile layer if current is not
+    setActiveLayerId(prevId => {
+      const currentLayer = roomDetail.layers.find(l => l.id === prevId)
+      if (currentLayer && currentLayer.type === 'tile') return prevId
+
+      const tileLayer = roomDetail.layers.find(l => l.type === 'tile')
+      return tileLayer ? tileLayer.id : prevId
+    })
+  }, [roomDetail.layers])
 
   // 마우스 위치 추적
   useEffect(() => {
@@ -442,7 +461,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      background: zone?.color ? `linear-gradient(to bottom right, ${zone.color}15, #0d0d12)` : '#0d0d12'
+      background: zone?.color ? `linear - gradient(to bottom right, ${zone.color}15, #0d0d12)` : '#0d0d12'
     }}>
       {/* Toolbar */}
       <RoomToolbar
@@ -483,9 +502,9 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
               <Wrench size={14} /> 그리기 도구
             </div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-              <button key="tool-brush" onClick={() => { handleSelectTile(selectedTile === 'empty' ? 'solid' : selectedTile); setToolMode('brush') }} className={`btn-base ${toolMode === 'brush' && !selectedObject && selectedTile !== 'empty' ? 'btn-primary' : 'btn-secondary'}`} style={{ flex: 1, padding: '8px' }} title="붙이기 (B)"><PenTool size={14} /></button>
-              <button key="tool-eraser" onClick={() => { handleSelectTile('empty'); setToolMode('brush') }} className={`btn-base ${toolMode === 'brush' && !selectedObject && selectedTile === 'empty' ? 'btn-primary' : 'btn-secondary'}`} style={{ flex: 1, padding: '8px', backgroundColor: toolMode === 'brush' && !selectedObject && selectedTile === 'empty' ? 'var(--accent-red)' : undefined }} title="지우개 (E)"><Eraser size={14} /></button>
-              <button key="tool-fill" onClick={() => { handleSelectTile(selectedTile); setToolMode('fill') }} className={`btn-base ${toolMode === 'fill' && !selectedObject ? 'btn-primary' : 'btn-secondary'}`} style={{ flex: 1, padding: '8px', backgroundColor: toolMode === 'fill' && !selectedObject ? 'var(--accent-green)' : undefined, color: toolMode === 'fill' && !selectedObject ? '#000' : undefined }} title="채우기 (G)"><Square size={14} /></button>
+              <button key="tool-brush" onClick={() => { handleSelectTile(selectedTile === 'empty' ? 'solid' : selectedTile); setToolMode('brush') }} className={`btn - base ${toolMode === 'brush' && !selectedObject && selectedTile !== 'empty' ? 'btn-primary' : 'btn-secondary'} `} style={{ flex: 1, padding: '8px' }} title="붙이기 (B)"><PenTool size={14} /></button>
+              <button key="tool-eraser" onClick={() => { handleSelectTile('empty'); setToolMode('brush') }} className={`btn - base ${toolMode === 'brush' && !selectedObject && selectedTile === 'empty' ? 'btn-primary' : 'btn-secondary'} `} style={{ flex: 1, padding: '8px', backgroundColor: toolMode === 'brush' && !selectedObject && selectedTile === 'empty' ? 'var(--accent-red)' : undefined }} title="지우개 (E)"><Eraser size={14} /></button>
+              <button key="tool-fill" onClick={() => { handleSelectTile(selectedTile); setToolMode('fill') }} className={`btn - base ${toolMode === 'fill' && !selectedObject ? 'btn-primary' : 'btn-secondary'} `} style={{ flex: 1, padding: '8px', backgroundColor: toolMode === 'fill' && !selectedObject ? 'var(--accent-green)' : undefined, color: toolMode === 'fill' && !selectedObject ? '#000' : undefined }} title="채우기 (G)"><Square size={14} /></button>
             </div>
 
             {!selectedObject && toolMode === 'brush' && (
@@ -532,7 +551,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <input type="color" value={tile.color as string} onChange={(e) => setTileColor(tile.key, e.target.value)} style={{ width: 34, height: 28, border: 'none', background: 'transparent', cursor: 'pointer' }} title={`${tile.key} 색상`} />
                           <button onClick={() => { const next = prompt('타일명(한국어)', tile.label) ?? ''; setTileName(tile.key, next); }} style={{ padding: '6px 8px', fontSize: 11, background: '#333', border: '1px solid #444', color: '#ddd', borderRadius: 6, cursor: 'pointer' }}>이름</button>
-                          <button onClick={() => { if (tile.isBuiltin) return; const ok = confirm(`타일을 삭제할까요?\n\n- ${tile.label}\n- key: ${tile.key}`); if (ok) deleteTile(tile.key); }} disabled={tile.isBuiltin} style={{ padding: '6px 8px', fontSize: 11, background: tile.isBuiltin ? '#2a2a34' : '#3a1f1f', border: '1px solid #444', color: tile.isBuiltin ? '#666' : '#ffb4b4', borderRadius: 6, cursor: tile.isBuiltin ? 'not-allowed' : 'pointer' }}>삭제</button>
+                          <button onClick={() => { if (tile.isBuiltin) return; const ok = confirm(`타일을 삭제할까요 ?\n\n - ${tile.label} \n - key: ${tile.key} `); if (ok) deleteTile(tile.key); }} disabled={tile.isBuiltin} style={{ padding: '6px 8px', fontSize: 11, background: tile.isBuiltin ? '#2a2a34' : '#3a1f1f', border: '1px solid #444', color: tile.isBuiltin ? '#666' : '#ffb4b4', borderRadius: 6, cursor: tile.isBuiltin ? 'not-allowed' : 'pointer' }}>삭제</button>
                         </div>
                       </div>
                     ))}
@@ -593,10 +612,10 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
           {/* Top Global Actions */}
           <div style={{ padding: 16, borderBottom: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button key="btn-undo" onClick={undo} disabled={!canUndo} title={`${t.undo} (Ctrl+Z)`} className="btn-base" style={{ flex: 1, padding: '8px', backgroundColor: canUndo ? 'var(--bg-panel-hover)' : 'transparent', color: canUndo ? 'var(--text-main)' : 'var(--text-muted)' }}>
+              <button key="btn-undo" onClick={undo} disabled={!canUndo} title={`${t.undo} (Ctrl + Z)`} className="btn-base" style={{ flex: 1, padding: '8px', backgroundColor: canUndo ? 'var(--bg-panel-hover)' : 'transparent', color: canUndo ? 'var(--text-main)' : 'var(--text-muted)' }}>
                 <Undo2 size={16} /> {t.undo}
               </button>
-              <button key="btn-redo" onClick={redo} disabled={!canRedo} title={`${t.redo} (Ctrl+Y)`} className="btn-base" style={{ flex: 1, padding: '8px', backgroundColor: canRedo ? 'var(--bg-panel-hover)' : 'transparent', color: canRedo ? 'var(--text-main)' : 'var(--text-muted)' }}>
+              <button key="btn-redo" onClick={redo} disabled={!canRedo} title={`${t.redo} (Ctrl + Y)`} className="btn-base" style={{ flex: 1, padding: '8px', backgroundColor: canRedo ? 'var(--bg-panel-hover)' : 'transparent', color: canRedo ? 'var(--text-main)' : 'var(--text-muted)' }}>
                 <Redo2 size={16} /> {t.redo}
               </button>
             </div>
@@ -632,8 +651,8 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
             <div className="animate-fade-in">
               <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
                 <button key="btn-layer-tile" onClick={() => {
-                  const id = `layer_${Date.now()}`
-                  const newLayers = [...roomDetail.layers, { id, name: `타일 레이어 ${roomDetail.layers.length}`, type: 'tile' as const, visible: true, opacity: 1, tiles: generateDefaultRoomDetail(room).layers[0].tiles }]
+                  const id = `layer_${Date.now()} `
+                  const newLayers = [...roomDetail.layers, { id, name: `타일 레이어 ${roomDetail.layers.length} `, type: 'tile' as const, visible: true, opacity: 1, tiles: generateDefaultRoomDetail(room).layers[0].tiles }]
                   setRoomDetailHistory({ ...roomDetail, layers: newLayers })
                   setActiveLayerId(id)
                   setHasChanges(true)
@@ -641,8 +660,8 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
                   <Plus size={14} /> 타일
                 </button>
                 <button key="btn-layer-object" onClick={() => {
-                  const id = `layer_${Date.now()}`
-                  const newLayers = [...roomDetail.layers, { id, name: `오브젝트 레이어 ${roomDetail.layers.length}`, type: 'object' as const, visible: true, opacity: 1, objects: [] }]
+                  const id = `layer_${Date.now()} `
+                  const newLayers = [...roomDetail.layers, { id, name: `오브젝트 레이어 ${roomDetail.layers.length} `, type: 'object' as const, visible: true, opacity: 1, objects: [] }]
                   setRoomDetailHistory({ ...roomDetail, layers: newLayers })
                   setActiveLayerId(id)
                   setHasChanges(true)
@@ -650,8 +669,8 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
                   <Plus size={14} /> 오브젝트
                 </button>
                 <button key="btn-layer-image" onClick={() => {
-                  const id = `layer_${Date.now()}`
-                  const newLayers = [...roomDetail.layers, { id, name: `이미지 레이어 ${roomDetail.layers.length}`, type: 'image' as const, visible: true, opacity: 0.5, imageUrl: '' }]
+                  const id = `layer_${Date.now()} `
+                  const newLayers = [...roomDetail.layers, { id, name: `이미지 레이어 ${roomDetail.layers.length} `, type: 'image' as const, visible: true, opacity: 0.5, imageUrl: '' }]
                   setRoomDetailHistory({ ...roomDetail, layers: newLayers })
                   setActiveLayerId(id)
                   setHasChanges(true)
@@ -661,32 +680,88 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, t
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {roomDetail.layers.slice().reverse().map((layer) => (
-                  <div key={layer.id} onClick={() => setActiveLayerId(layer.id)} style={{ padding: 12, backgroundColor: activeLayerId === layer.id ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255,255,255,0.03)', border: activeLayerId === layer.id ? '1px solid var(--accent-blue)' : '1px solid var(--border-light)', borderRadius: 'var(--border-radius-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: layer.type === 'tile' ? 'var(--accent-green)' : 'var(--accent-indigo)' }} title={layer.type} />
-                    <div style={{ flex: 1, fontSize: 13, color: '#fff' }}>{layer.name}</div>
-                    <button onClick={(e) => {
-                      e.stopPropagation()
-                      const newLayers = roomDetail.layers.map(l => l.id === layer.id ? { ...l, visible: !l.visible } : l)
-                      setRoomDetailHistory({ ...roomDetail, layers: newLayers })
-                      setHasChanges(true)
-                    }} className="btn-base" style={{ padding: 4, background: 'transparent' }}>
-                      <span style={{ opacity: layer.visible ? 1 : 0.4 }}>👁️</span>
-                    </button>
-                    <button onClick={(e) => {
-                      e.stopPropagation()
-                      if (roomDetail.layers.length <= 1) return alert('최소 1개의 레이어가 필요합니다.')
-                      if (confirm(`'${layer.name}' 레이어를 삭제할까요?`)) {
-                        const newLayers = roomDetail.layers.filter(l => l.id !== layer.id)
-                        setRoomDetailHistory({ ...roomDetail, layers: newLayers })
-                        if (activeLayerId === layer.id) setActiveLayerId(newLayers[newLayers.length - 1].id)
-                        setHasChanges(true)
-                      }
-                    }} className="btn-base" style={{ padding: 4, color: 'var(--accent-red)', background: 'transparent' }}>
-                      <span style={{ fontSize: 12 }}>❌</span>
-                    </button>
-                  </div>
-                ))}
+                {roomDetail.layers.slice().reverse().map((layer) => {
+                  const actualIdx = roomDetail.layers.findIndex(l => l.id === layer.id)
+                  const canMoveUp = actualIdx < roomDetail.layers.length - 1
+                  const canMoveDown = actualIdx > 0
+
+                  return (
+                    <div key={layer.id} onClick={() => setActiveLayerId(layer.id)} style={{ padding: 12, backgroundColor: activeLayerId === layer.id ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255,255,255,0.03)', border: activeLayerId === layer.id ? '1px solid var(--accent-blue)' : '1px solid var(--border-light)', borderRadius: 'var(--border-radius-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <button
+                          disabled={!canMoveUp}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (!canMoveUp) return
+                            const newLayers = [...roomDetail.layers]
+                            const temp = newLayers[actualIdx]
+                            newLayers[actualIdx] = newLayers[actualIdx + 1]
+                            newLayers[actualIdx + 1] = temp
+                            setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                            setHasChanges(true)
+                          }}
+                          className="btn-base" style={{ padding: 2, background: 'transparent', color: canMoveUp ? '#fff' : 'var(--text-muted)' }} title="레이어 위로 이동"
+                        >
+                          <ChevronUp size={16} />
+                        </button>
+                        <button
+                          disabled={!canMoveDown}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (!canMoveDown) return
+                            const newLayers = [...roomDetail.layers]
+                            const temp = newLayers[actualIdx]
+                            newLayers[actualIdx] = newLayers[actualIdx - 1]
+                            newLayers[actualIdx - 1] = temp
+                            setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                            setHasChanges(true)
+                          }}
+                          className="btn-base" style={{ padding: 2, background: 'transparent', color: canMoveDown ? '#fff' : 'var(--text-muted)' }} title="레이어 아래로 이동"
+                        >
+                          <ChevronDown size={16} />
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                          <span style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            backgroundColor: layer.type === 'tile' ? 'rgba(34, 197, 94, 0.2)' : layer.type === 'object' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(236, 72, 153, 0.2)',
+                            color: layer.type === 'tile' ? '#4ade80' : layer.type === 'object' ? '#818cf8' : '#f472b6',
+                            textTransform: 'uppercase'
+                          }}>{layer.type}</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{layer.name}</div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <button onClick={(e) => {
+                          e.stopPropagation()
+                          const newLayers = roomDetail.layers.map(l => l.id === layer.id ? { ...l, visible: !l.visible } : l)
+                          setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                          setHasChanges(true)
+                        }} className="btn-base" style={{ padding: 6, background: 'transparent', color: layer.visible ? '#fff' : 'var(--text-muted)' }} title={layer.visible ? "숨기기" : "보이기"}>
+                          {layer.visible ? <Eye size={16} /> : <EyeOff size={16} />}
+                        </button>
+                        <button onClick={(e) => {
+                          e.stopPropagation()
+                          if (roomDetail.layers.length <= 1) return alert('최소 1개의 레이어가 필요합니다.')
+                          if (confirm(`'${layer.name}' 레이어를 삭제할까요 ? `)) {
+                            const newLayers = roomDetail.layers.filter(l => l.id !== layer.id)
+                            setRoomDetailHistory({ ...roomDetail, layers: newLayers })
+                            if (activeLayerId === layer.id) setActiveLayerId(newLayers[newLayers.length - 1].id)
+                            setHasChanges(true)
+                          }
+                        }} className="btn-base" style={{ padding: 6, color: 'var(--accent-red)', background: 'transparent' }} title="삭제">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
 
               {(() => {

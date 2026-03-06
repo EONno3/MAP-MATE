@@ -1,8 +1,9 @@
 import React from 'react'
-import { Room, Zone, RoomType, ROOM_TYPE_ICONS, Connection, GateCondition, GATE_COLORS } from '../types/map'
+import { Room, Zone, RoomType, Connection, GateCondition, GATE_COLORS } from '../types/map'
 import { Translations, getRoomTypeName } from '../i18n/translations'
 import { MousePointerClick, Link as LinkIcon, Box, Copy, ClipboardPaste, Trash2, Scissors, Image as ImageIcon, Lightbulb, MapPin } from 'lucide-react'
-
+import { RoomTypeSelect } from './RoomTypeSelect'
+import { getRoomTypeIconComponent } from '../lib/iconRenderer'
 // 선택된 연결선 타입
 interface SelectedConnection {
   fromId: number
@@ -335,31 +336,13 @@ export function Sidebar({
           <label style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
             일괄 유형 변경
           </label>
-          <select
-            onChange={(e) => {
-              if (e.target.value) {
-                onUpdateSelectedRooms({ type: e.target.value as RoomType })
-              }
-            }}
-            style={{
-              width: '100%',
-              padding: '12px 14px',
-              marginTop: 8,
-              backgroundColor: '#252530',
-              border: '1px solid #444',
-              borderRadius: 6,
-              color: '#fff',
-              fontSize: 14,
-              cursor: 'pointer'
-            }}
-          >
-            <option value="">-- 유형 선택 --</option>
-            {ROOM_TYPES.map(type => (
-              <option key={type} value={type}>
-                {ROOM_TYPE_ICONS[type]} {getRoomTypeName(type, t)}
-              </option>
-            ))}
-          </select>
+          <RoomTypeSelect
+            value={''}
+            onChange={(type) => onUpdateSelectedRooms({ type })}
+            options={ROOM_TYPES}
+            t={t}
+            placeholder="-- 유형 선택 --"
+          />
         </div>
 
         {/* 선택된 방 목록 */}
@@ -375,19 +358,25 @@ export function Sidebar({
             borderRadius: 6,
             padding: 8
           }}>
-            {selectedRooms.map(room => (
-              <div key={room.id} style={{
-                padding: '6px 8px',
-                fontSize: 12,
-                color: '#ccc',
-                borderBottom: '1px solid #333'
-              }}>
-                {ROOM_TYPE_ICONS[room.type]} {room.name || `${t.room} ${room.id}`}
-                <span style={{ color: '#666', marginLeft: 8 }}>
-                  ({room.w}×{room.h})
-                </span>
-              </div>
-            ))}
+            {selectedRooms.map(room => {
+              const Icon = getRoomTypeIconComponent(room.type)
+              return (
+                <div key={room.id} style={{
+                  padding: '6px 8px',
+                  fontSize: 12,
+                  color: '#ccc',
+                  borderBottom: '1px solid #333',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}>
+                  <Icon size={14} color="var(--accent-blue)" /> {room.name || `${t.room} ${room.id}`}
+                  <span style={{ color: '#666', marginLeft: 8 }}>
+                    ({room.w}×{room.h})
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
 
@@ -487,7 +476,7 @@ export function Sidebar({
     )
   }
 
-  const icon = ROOM_TYPE_ICONS[selectedRoom.type] || '📦'
+  const SelectedIcon = getRoomTypeIconComponent(selectedRoom.type)
   const hasDetail = !!selectedRoom.detail
 
   return (
@@ -510,7 +499,9 @@ export function Sidebar({
           gap: 10,
           marginBottom: 8
         }}>
-          <span style={{ fontSize: 32 }}>{icon}</span>
+          <span style={{ fontSize: 32, display: 'flex', alignItems: 'center' }}>
+            <SelectedIcon size={32} color="var(--accent-blue)" />
+          </span>
           <div>
             <div style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>
               {selectedRoom.name || `${t.room} ${selectedRoom.id}`}
@@ -540,27 +531,12 @@ export function Sidebar({
         <label style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
           {t.roomType}
         </label>
-        <select
+        <RoomTypeSelect
           value={selectedRoom.type}
-          onChange={(e) => onUpdateRoom(selectedRoom.id, { type: e.target.value as RoomType })}
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            marginTop: 6,
-            backgroundColor: '#252530',
-            border: '1px solid #444',
-            borderRadius: 6,
-            color: '#fff',
-            fontSize: 14,
-            cursor: 'pointer'
-          }}
-        >
-          {ROOM_TYPES.map(type => (
-            <option key={type} value={type}>
-              {ROOM_TYPE_ICONS[type]} {getRoomTypeName(type, t)}
-            </option>
-          ))}
-        </select>
+          onChange={(type) => onUpdateRoom(selectedRoom.id, { type })}
+          options={ROOM_TYPES}
+          t={t}
+        />
       </div>
 
       {/* Zone Selection */}

@@ -1,8 +1,14 @@
-# Mapmate (MAP-MATE) v1.2
+# Mapmate (MAP-MATE) v1.5
 
 Metroidvania 스타일 맵(룸/연결/게이팅)을 **AI로 생성**하고, 생성 결과를 **웹 UI에서 편집/내보내기** 할 수 있는 도구입니다.
 
 [![CI](https://github.com/EONno3/MAP-MATE/actions/workflows/ci.yml/badge.svg)](https://github.com/EONno3/MAP-MATE/actions/workflows/ci.yml)
+
+## 🌟 v1.5 업데이트 주요 내역
+- **룸 타입 선정 시스템 도입**: 맵 설정 창에서 룸 타입(일반, 보스, 세이브 등)을 직접 선택하고 관리할 수 있는 기능 추가
+- **툴팁(Tooltip) 시스템 강화**: UI 요소 전반에 상세 설명을 제공하는 공통 툴팁 컴포넌트 적용
+- **맵 캔버스 및 룸 에디터 안정화**: 룸 배치 정밀도 향상 및 플레이 테스트 모드 레이아웃 개선
+- **사이드바 UI 가독성 개선**: 맵 파라미터 조절창 및 존(Zone) 관리 패널의 시각적 피드백 강화
 
 ## 🌟 v1.2 업데이트 주요 내역
 - **룸 에디터 UI/UX 전체 개편**: 스페이스바(Spacebar) 화면 맵 패닝 기능 추가, 다중 탭(Tile/Object) 팔레트 적용, 플로팅 툴박스(Floating Toolbox) 및 단축키 지원(B: 브러시, G: 채우기, E: 지우기 등)

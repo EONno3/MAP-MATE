@@ -217,19 +217,6 @@ export interface Point {
 // Editor tool types
 export type EditorTool = 'select' | 'pan' | 'connect' | 'add_room' | 'delete' | 'draw'
 
-// Room type icons mapping
-export const ROOM_TYPE_ICONS: Record<RoomType, string> = {
-  start: '🏠',
-  hub: '🏛️',
-  normal: '',
-  boss: '💀',
-  item: '📦',
-  save: '💾',
-  shop: '🛒',
-  stag: '🚉',
-  map: '🗺️'
-}
-
 // Gate condition colors
 export const GATE_COLORS: Record<GateCondition, string> = {
   none: '#666666',

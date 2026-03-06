@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react'
-import { MapData, Room, Connection, ROOM_TYPE_ICONS, GATE_COLORS, Point, EditorTool, GateCondition } from '../types/map'
+import { MapData, Room, Connection, GATE_COLORS, Point, EditorTool, GateCondition } from '../types/map'
 import { useCanvasTransform } from '../hooks/useCanvasTransform'
 import { Tooltip } from './Tooltip'
 import { Translations } from '../i18n/translations'
