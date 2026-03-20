@@ -64,7 +64,7 @@ echo ============================================================
 echo.
 echo [SUCCESS] Mapmate started successfully!
 echo.
-echo    Web UI:  http://localhost:3000
+echo    Web UI:  http://localhost:3080
 echo    API:     http://localhost:8000
 echo.
 echo See log: "%LOGFILE%"
@@ -72,7 +72,7 @@ echo.
 
 echo Opening browser...
 powershell -NoProfile -Command "Start-Sleep -Seconds 2" > nul 2>&1
-start http://localhost:3000
+start http://localhost:3080
 
 echo.
 echo Press any key to close this window...

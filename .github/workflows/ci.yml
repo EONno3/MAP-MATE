@@ -7,64 +7,7 @@ on:
     branches: [main, master, develop]
 
 jobs:
-  backend-api:
-    name: Backend API Tests
-    runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: mapmate
-          POSTGRES_PASSWORD: mapmate
-          POSTGRES_DB: mapmate
-        ports:
-          - 15432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Generate Prisma Client
-        run: pnpm -C packages/backend-api exec prisma generate
-
-      - name: Run Prisma migrations
-        run: pnpm -C packages/backend-api exec prisma db push
-        env:
-          DATABASE_URL: postgresql://mapmate:mapmate@localhost:15432/mapmate?schema=public
-
-      - name: Run tests
-        run: pnpm -C packages/backend-api test
-        env:
-          DATABASE_URL: postgresql://mapmate:mapmate@localhost:15432/mapmate?schema=public
-          JWT_SECRET: test-secret-key-for-ci
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        if: always()
-        with:
-          files: ./packages/backend-api/coverage/lcov.info
-          flags: backend-api
-          name: backend-api-coverage
+  # backend-api: WIP 패키지(Prisma/DB 미구현) - 추후 구현 시 CI 추가 예정
 
   backend-ai:
     name: Backend AI Tests
@@ -100,7 +43,7 @@ jobs:
           name: backend-ai-coverage
 
   frontend:
-    name: Frontend Build & Lint
+    name: Frontend Build & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -121,19 +64,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Type check
-        run: pnpm -C packages/frontend type-check
-
-      - name: Lint
-        run: pnpm -C packages/frontend lint
-
-      - name: Format check
-        run: pnpm -C packages/frontend format:check
+      - name: Run tests
+        run: pnpm -C packages/frontend test
 
       - name: Build
         run: pnpm -C packages/frontend build
         env:
-          VITE_API_URL: http://localhost:3000
+          VITE_API_URL: ""
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

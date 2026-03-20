@@ -1,6 +1,6 @@
 # 🚀 Mapmate 간편 실행 가이드
 
-> **Docker로 실행(권장)**: `start-docker.bat` 더블클릭 → `http://localhost:3000`  
+> **Docker로 실행(권장)**: `start-docker.bat` 더블클릭 → `http://localhost:3080`  
 > 자세한 내용은 `README-Docker.md`를 참고하세요.
 
 ## 원클릭 실행!

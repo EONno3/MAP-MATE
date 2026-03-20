@@ -1,3 +1,4 @@
+# Mapmate AI Generator - Copyright (c) 2026 EONno3. All rights reserved.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel

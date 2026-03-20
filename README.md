@@ -44,7 +44,7 @@ Windows라면 아래 2개만으로 바로 확인 가능합니다.
 
 ### 접속 주소
 
-- **Web UI**: `http://localhost:3000`
+- **Web UI**: `http://localhost:3080`
 - **Backend AI(health)**: `http://localhost:8000/healthz`
 
 자세한 내용은 `README-Docker.md`를 참고하세요.
@@ -133,7 +133,7 @@ cd ..\..
 .\start-docker.bat
 ```
 
-- Web UI: `http://localhost:3000`
+- Web UI: `http://localhost:3080`
 - Backend AI: `http://localhost:8000/healthz`
 
 ### 실행
@@ -272,7 +272,13 @@ chore: 빌드 설정, 의존성 업데이트 등
 
 ## 라이선스
 
-MIT License
+MIT License. Copyright (c) 2026 EONno3. All rights reserved.
+
+자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.
+
+### 소유권 증명 (GPG 커밋 서명)
+
+커밋에 GPG 서명을 적용하면 GitHub에서 **Verified** 배지가 표시되어 작성자 신원을 확인할 수 있습니다. 설정 방법은 [GitHub 문서](https://docs.github.com/ko/authentication/managing-commit-signature-verification)를 참고하세요.
 
 ## 기여
 

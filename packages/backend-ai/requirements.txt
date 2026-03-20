@@ -4,6 +4,7 @@ pydantic
 numpy
 networkx
 pytest
+pytest-cov
 openai
 
 

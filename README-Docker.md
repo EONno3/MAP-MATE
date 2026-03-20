@@ -13,7 +13,7 @@
 
 ## 접속 주소
 
-- **Web UI**: `http://localhost:3000`
+- **Web UI**: `http://localhost:3080`
 - **Backend(health)**: `http://localhost:8000/healthz`
 
 ## 최신 빌드 확인(중요)

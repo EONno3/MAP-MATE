@@ -1,3 +1,7 @@
+/**
+ * Mapmate - Metroidvania Map Editor
+ * Copyright (c) 2026 EONno3. All rights reserved.
+ */
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
