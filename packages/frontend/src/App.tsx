@@ -15,6 +15,8 @@ import { useTileCatalog } from './hooks/useTileCatalog'
 import { HelpModal } from './components/HelpModal'
 import { Loader2, Map, Upload, Edit2, Copy, Trash2, X } from 'lucide-react'
 import { TutorialOverlay } from './components/TutorialOverlay'
+import { LocalSaveModal } from './components/LocalSaveModal'
+import { saveToLocal, getLocalSave, getLastUpdatedSaveId } from './lib/localSaveManager'
 
 export default function App() {
   const BUILD_ID = 'fix-undo-ui-20260202'
@@ -26,6 +28,11 @@ export default function App() {
 
   // Tutorial State
   const [isTutorialMode, setIsTutorialMode] = useState(false)
+
+  // Local Save State
+  const [currentSaveId, setCurrentSaveId] = useState<string | null>(null)
+  const [isLocalSaveModalOpen, setIsLocalSaveModalOpen] = useState(false)
+  const [localSaveModalMode, setLocalSaveModalMode] = useState<'save' | 'load'>('save')
 
   // 언어 토글 제거: UI/타일명은 한국어 기준으로 고정
   const t: Translations = translations.ko
@@ -79,8 +86,56 @@ export default function App() {
 
   // Fetch map on initial load
   useEffect(() => {
+    const lastSaveId = getLastUpdatedSaveId()
+    if (lastSaveId) {
+      const save = getLocalSave(lastSaveId)
+      if (save) {
+        if (save.tileCatalog) {
+          tileCatalog.importTileCatalogState(save.tileCatalog)
+        }
+        importMap({ mapData: save.mapData, connections: save.connections })
+        setCurrentSaveId(lastSaveId)
+        return
+      }
+    }
     fetchMap()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Local Save Handlers
+  const handleQuickSave = useCallback(() => {
+    if (!mapData) return
+    if (currentSaveId) {
+      const save = getLocalSave(currentSaveId)
+      const name = save ? save.name : 'Untitled Map'
+      saveToLocal(currentSaveId, name, mapData, connections, tileCatalog.state)
+      alert(t.saveSuccess || '맵이 저장되었습니다.')
+    } else {
+      setLocalSaveModalMode('save')
+      setIsLocalSaveModalOpen(true)
+    }
+  }, [mapData, connections, currentSaveId, tileCatalog.state, t])
+
+  const handleSaveModalSubmit = useCallback((name: string, saveId?: string) => {
+    if (!mapData) return
+    const idToSave = saveId || `save_${Date.now()}`
+    saveToLocal(idToSave, name, mapData, connections, tileCatalog.state)
+    setCurrentSaveId(idToSave)
+    setIsLocalSaveModalOpen(false)
+    alert(t.saveSuccess || '맵이 저장되었습니다.')
+  }, [mapData, connections, tileCatalog.state, t])
+
+  const handleLoadModalSubmit = useCallback((saveId: string) => {
+    const save = getLocalSave(saveId)
+    if (save) {
+      if (save.tileCatalog) {
+        tileCatalog.importTileCatalogState(save.tileCatalog)
+      }
+      importMap({ mapData: save.mapData, connections: save.connections })
+      setCurrentSaveId(saveId)
+      setIsLocalSaveModalOpen(false)
+    }
+  }, [importMap, tileCatalog])
 
   // Listen for tutorial mode toggle event
   useEffect(() => {
@@ -111,6 +166,11 @@ export default function App() {
         // NOTE: e.key는 키보드 레이아웃/IME(한글 입력) 영향으로 'ㅋ'처럼 들어올 수 있어
         // 단축키는 물리 키 기준(e.code: KeyZ/KeyY/KeyC...)으로 처리한다.
         switch (e.code) {
+          case 'KeyS':
+            if (isTextEditing) return
+            e.preventDefault()
+            handleQuickSave()
+            break
           case 'KeyZ':
             if (isTextEditing) return
             e.preventDefault()
@@ -174,7 +234,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canEditMap, editMode, undo, redo, copySelectedRooms, pasteRooms, selectAllRooms, clearSelection, deleteSelectedRooms, selectedRoomIds, selectedRoomId])
+  }, [canEditMap, editMode, undo, redo, copySelectedRooms, pasteRooms, selectAllRooms, clearSelection, deleteSelectedRooms, selectedRoomIds, selectedRoomId, handleQuickSave])
 
   // Handle generate from toolbar (random)
   const handleGenerate = useCallback(() => {
@@ -409,6 +469,8 @@ export default function App() {
         onExportUnity={handleExportUnity}
         onExportImage={() => window.dispatchEvent(new Event('export-map-image'))}
         onImport={handleImport}
+        onSaveLocal={() => { setLocalSaveModalMode('save'); setIsLocalSaveModalOpen(true); }}
+        onLoadLocal={() => { setLocalSaveModalMode('load'); setIsLocalSaveModalOpen(true); }}
         loading={loading}
         canGenerate={interaction.canGenerate}
         interactive={canEditMap}
@@ -624,6 +686,15 @@ export default function App() {
       {/* Modals & Overlays */}
       <HelpModal t={t} />
       <TutorialOverlay isActive={isTutorialMode} onExit={() => setIsTutorialMode(false)} language="ko" />
+      <LocalSaveModal
+        isOpen={isLocalSaveModalOpen}
+        mode={localSaveModalMode}
+        onClose={() => setIsLocalSaveModalOpen(false)}
+        onSave={handleSaveModalSubmit}
+        onLoad={handleLoadModalSubmit}
+        currentSaveId={currentSaveId}
+        t={t}
+      />
     </div>
   )
 }

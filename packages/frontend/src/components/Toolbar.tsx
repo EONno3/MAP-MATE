@@ -15,7 +15,9 @@ import {
   Link,
   HelpCircle,
   Image as ImageIcon,
-  Sparkles
+  Sparkles,
+  HardDriveDownload,
+  HardDriveUpload
 } from 'lucide-react'
 
 interface ToolbarProps {
@@ -24,6 +26,8 @@ interface ToolbarProps {
   onExportUnity: () => void
   onExportImage?: () => void
   onImport: () => void
+  onSaveLocal?: () => void
+  onLoadLocal?: () => void
   loading: boolean
   canGenerate?: boolean
   interactive?: boolean
@@ -46,6 +50,8 @@ export function Toolbar({
   onExportUnity,
   onExportImage,
   onImport,
+  onSaveLocal,
+  onLoadLocal,
   loading,
   canGenerate = true,
   interactive = true,
@@ -122,6 +128,35 @@ export function Toolbar({
           </>
         )}
       </button>
+
+      <div style={{ width: 1, height: 24, backgroundColor: 'var(--border-light)', margin: '0 4px' }} />
+
+      {/* Local Save / Load */}
+      {onSaveLocal && (
+        <button
+          onClick={onSaveLocal}
+          disabled={disableExport}
+          className="btn-base btn-secondary"
+          title={t.localSave}
+        >
+          <HardDriveDownload size={16} color="var(--accent-blue)" />
+          {t.localSave}
+        </button>
+      )}
+
+      {onLoadLocal && (
+        <button
+          onClick={onLoadLocal}
+          disabled={loading}
+          className="btn-base btn-secondary"
+          title={t.localLoad}
+        >
+          <HardDriveUpload size={16} color="var(--accent-blue)" />
+          {t.localLoad}
+        </button>
+      )}
+
+      <div style={{ width: 1, height: 24, backgroundColor: 'var(--border-light)', margin: '0 4px' }} />
 
       <button
         onClick={onImport}

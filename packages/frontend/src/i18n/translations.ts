@@ -161,6 +161,21 @@ export interface Translations {
   paste: string
   mixed: string
   selectType: string
+
+  // Local Save
+  localSave: string
+  localLoad: string
+  saveMapTitle: string
+  loadMapTitle: string
+  mapName: string
+  mapNamePlaceholder: string
+  saveAction: string
+  loadAction: string
+  cancel: string
+  delete: string
+  confirmDeleteMap: string
+  noSavedMaps: string
+  saveSuccess: string
 }
 
 export const translations: Record<Language, Translations> = {
@@ -324,7 +339,22 @@ export const translations: Record<Language, Translations> = {
     copy: '복사',
     paste: '붙여넣기',
     mixed: '혼합됨',
-    selectType: '유형 선택'
+    selectType: '유형 선택',
+
+    // Local Save
+    localSave: '내 맵 저장',
+    localLoad: '내 맵 열기',
+    saveMapTitle: '맵 저장하기',
+    loadMapTitle: '저장된 맵 불러오기',
+    mapName: '맵 이름',
+    mapNamePlaceholder: '맵 이름을 입력하세요',
+    saveAction: '저장',
+    loadAction: '불러오기',
+    cancel: '취소',
+    delete: '삭제',
+    confirmDeleteMap: '정말로 이 맵을 삭제하시겠습니까?',
+    noSavedMaps: '저장된 맵이 없습니다.',
+    saveSuccess: '맵이 저장되었습니다.'
   },
 
   en: {
@@ -487,7 +517,22 @@ export const translations: Record<Language, Translations> = {
     copy: 'Copy',
     paste: 'Paste',
     mixed: 'Mixed',
-    selectType: 'Select Type'
+    selectType: 'Select Type',
+
+    // Local Save
+    localSave: 'Save Map',
+    localLoad: 'Load Map',
+    saveMapTitle: 'Save Map',
+    loadMapTitle: 'Load Saved Map',
+    mapName: 'Map Name',
+    mapNamePlaceholder: 'Enter map name',
+    saveAction: 'Save',
+    loadAction: 'Load',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    confirmDeleteMap: 'Are you sure you want to delete this map?',
+    noSavedMaps: 'No saved maps found.',
+    saveSuccess: 'Map saved successfully.'
   }
 }
 

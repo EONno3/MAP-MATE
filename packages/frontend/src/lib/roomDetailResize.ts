@@ -1,7 +1,41 @@
-import type { RoomDetail, TileType } from '../types/map'
+import type { RoomDetail, RoomLayer, RoomObject, TileType } from '../types/map'
 
 function createTiles(tileWidth: number, tileHeight: number, fill: TileType): TileType[][] {
   return Array.from({ length: tileHeight }, () => Array.from({ length: tileWidth }, () => fill))
+}
+
+function ensureLayers(detail: RoomDetail, fill: TileType): RoomLayer[] {
+  const layers = (detail as unknown as { layers?: RoomLayer[] }).layers
+  if (Array.isArray(layers) && layers.length > 0) return layers
+
+  const w = Math.max(1, Math.floor(detail.tileWidth ?? 1))
+  const h = Math.max(1, Math.floor(detail.tileHeight ?? 1))
+  const legacyTiles = (detail as unknown as { tiles?: TileType[][] }).tiles ?? createTiles(w, h, fill)
+  const legacyObjects = (detail as unknown as { objects?: RoomObject[] }).objects ?? []
+
+  const nextLayers: RoomLayer[] = [
+    { id: 'base', name: 'Base', type: 'tile', visible: true, opacity: 1, tiles: legacyTiles },
+  ]
+  if (legacyObjects.length > 0) {
+    nextLayers.push({ id: 'objects', name: 'Objects', type: 'object', visible: true, opacity: 1, objects: legacyObjects })
+  }
+  return nextLayers
+}
+
+function pickLegacyTiles(layers: RoomLayer[], w: number, h: number, fill: TileType): TileType[][] {
+  const firstTileLayer = layers.find((l) => l?.type === 'tile' && l.tiles)
+  if (firstTileLayer?.tiles) return firstTileLayer.tiles
+  return createTiles(w, h, fill)
+}
+
+function collectLegacyObjects(layers: RoomLayer[]): RoomObject[] {
+  const out: RoomObject[] = []
+  for (const layer of layers) {
+    if (layer?.type !== 'object') continue
+    if (!layer.objects) continue
+    out.push(...layer.objects)
+  }
+  return out
 }
 
 export interface ResizeRoomDetailOptions {
@@ -32,7 +66,8 @@ export function resizeRoomDetail(
   const copyW = Math.min(w, detail.tileWidth)
   const copyH = Math.min(h, detail.tileHeight)
 
-  const nextLayers = detail.layers.map(layer => {
+  const layers = ensureLayers(detail, fill)
+  const nextLayers = layers.map(layer => {
     if (layer.type === 'tile') {
       const nextTiles = createTiles(w, h, fill)
       if (layer.tiles) {
@@ -58,6 +93,9 @@ export function resizeRoomDetail(
     tileWidth: w,
     tileHeight: h,
     layers: nextLayers,
+    // legacy 호환: 단일 tiles/objects 필드도 함께 갱신
+    tiles: pickLegacyTiles(nextLayers, w, h, fill),
+    objects: collectLegacyObjects(nextLayers),
   }
 }
 

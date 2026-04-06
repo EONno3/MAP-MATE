@@ -1,4 +1,4 @@
-import type { Connection, MapData, Room, RoomDetail, TileType } from '../types/map'
+import type { Connection, MapData, Room, RoomDetail, RoomLayer, RoomObject, TileType } from '../types/map'
 import { TILES_PER_CHUNK_X, TILES_PER_CHUNK_Y, UNITY_COMPONENT_MAP } from '../types/map'
 import { resizeRoomDetail } from './roomDetailResize'
 import { normalizeConnections } from './mapConnections'
@@ -56,7 +56,11 @@ export interface UnityRoomExport {
     tileWidth: number
     tileHeight: number
     gridSize: number
-    tileLayers: UnityTilemapLayerExport[]
+    // v1 필수 필드 (Unity Importer가 사용)
+    tilesEncoding: 'raw2d' | 'rle1d'
+    tiles: number[][] | Array<{ id: number; run: number }>
+    // 확장 필드(추후 레이어별 Tilemap 생성 등에 사용 가능)
+    tileLayers?: UnityTilemapLayerExport[]
     objects: UnityEntityExport[]
   }
 }
@@ -102,6 +106,14 @@ function clampInt(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.floor(n)))
 }
 
+function isEmptyTile(t: unknown): boolean {
+  return t == null || t === 'empty'
+}
+
+function createFilledTiles2d(w: number, h: number, fill: TileType): TileType[][] {
+  return Array.from({ length: h }, () => Array.from({ length: w }, () => fill))
+}
+
 function defaultRoomDetail(room: Room, tilesPerChunkX: number, tilesPerChunkY: number): RoomDetail {
   const tileWidth = Math.max(1, room.w) * tilesPerChunkX
   const tileHeight = Math.max(1, room.h) * tilesPerChunkY
@@ -124,14 +136,67 @@ function defaultRoomDetail(room: Room, tilesPerChunkX: number, tilesPerChunkY: n
   }
 }
 
+function normalizeRoomDetail(detail: RoomDetail): RoomDetail {
+  // 앱 내부 정식 포맷은 detail.layers 기반이지만, 테스트/레거시 데이터는 tiles/objects만 있을 수 있습니다.
+  const layers = (detail as unknown as { layers?: RoomLayer[] }).layers
+  if (Array.isArray(layers) && layers.length > 0) return detail
+
+  const w = Math.max(1, Math.floor(detail.tileWidth ?? 1))
+  const h = Math.max(1, Math.floor(detail.tileHeight ?? 1))
+  const legacyTiles = (detail as unknown as { tiles?: TileType[][] }).tiles
+  const legacyObjects = (detail as unknown as { objects?: RoomObject[] }).objects
+
+  const baseTiles =
+    legacyTiles && Array.isArray(legacyTiles)
+      ? legacyTiles
+      : createFilledTiles2d(w, h, 'empty')
+
+  const nextLayers: RoomLayer[] = [
+    { id: 'base', name: 'Base', type: 'tile', visible: true, opacity: 1, tiles: baseTiles },
+  ]
+
+  if (legacyObjects && Array.isArray(legacyObjects) && legacyObjects.length > 0) {
+    nextLayers.push({ id: 'objects', name: 'Objects', type: 'object', visible: true, opacity: 1, objects: legacyObjects })
+  }
+
+  return {
+    ...detail,
+    gridSize: detail.gridSize ?? 16,
+    layers: nextLayers,
+  }
+}
+
 function ensureDetailMatchesRoom(room: Room, tilesPerChunkX: number, tilesPerChunkY: number): RoomDetail {
   const expectedW = Math.max(1, room.w) * tilesPerChunkX
   const expectedH = Math.max(1, room.h) * tilesPerChunkY
 
-  const detail = room.detail ?? defaultRoomDetail(room, tilesPerChunkX, tilesPerChunkY)
+  const detail = normalizeRoomDetail(room.detail ?? defaultRoomDetail(room, tilesPerChunkX, tilesPerChunkY))
   if (detail.tileWidth === expectedW && detail.tileHeight === expectedH) return detail
 
   return resizeRoomDetail(detail, expectedW, expectedH, { fill: 'empty' })
+}
+
+function composeTilesFromLayers(detail: RoomDetail): TileType[][] {
+  const w = detail.tileWidth
+  const h = detail.tileHeight
+  const out = createFilledTiles2d(w, h, 'empty')
+
+  for (const layer of detail.layers ?? []) {
+    if (layer?.type !== 'tile') continue
+    if (layer.visible === false) continue
+    if (!layer.tiles) continue
+
+    for (let y = 0; y < h; y++) {
+      const row = layer.tiles[y] ?? []
+      for (let x = 0; x < w; x++) {
+        const t = row[x]
+        if (isEmptyTile(t)) continue
+        out[y][x] = (t ?? 'empty') as TileType
+      }
+    }
+  }
+
+  return out
 }
 
 function tilesToIdsRaw2d(tiles: TileType[][]): number[][] {
@@ -370,6 +435,11 @@ export function buildUnityExportV1(mapData: MapData, connections: Connection[], 
       }
     }
 
+    const composedTiles = composeTilesFromLayers(detail)
+    const tiles = useRle
+      ? tilesToIdsRle1d(composedTiles, detail.tileWidth, detail.tileHeight)
+      : tilesToIdsRaw2d(composedTiles)
+
     return {
       id: room.id,
       zoneId: room.zone_id,
@@ -379,6 +449,8 @@ export function buildUnityExportV1(mapData: MapData, connections: Connection[], 
         tileWidth: detail.tileWidth,
         tileHeight: detail.tileHeight,
         gridSize: detail.gridSize ?? 16,
+        tilesEncoding,
+        tiles,
         tileLayers,
         objects: exportedObjects,
       },
