@@ -22,6 +22,50 @@ describe('buildUnityExportV1', () => {
     expect(out.rooms[0].detail.tileHeight).toBe(6)
   })
 
+  it('여러 타일 레이어는 (visible=true만) 위에서 아래로 덮어써서 단일 tiles로 export한다', () => {
+    const tileWidth = 10
+    const tileHeight = 6
+    const baseTiles = Array.from({ length: tileHeight }, () => Array.from({ length: tileWidth }, () => 'solid' as const))
+    const overlayTiles = Array.from({ length: tileHeight }, () => Array.from({ length: tileWidth }, () => 'empty' as const))
+    overlayTiles[3][2] = 'door' as const
+
+    const hiddenTiles = Array.from({ length: tileHeight }, () => Array.from({ length: tileWidth }, () => 'empty' as const))
+    hiddenTiles[3][2] = 'spike' as const
+
+    const detail: RoomDetail = {
+      roomId: 1,
+      tileWidth,
+      tileHeight,
+      // RoomDetail.layers가 앱의 정식 포맷이므로 그 경로를 우선 검증
+      layers: [
+        { id: 'base', name: 'Base', type: 'tile', visible: true, opacity: 1, tiles: baseTiles },
+        { id: 'overlay', name: 'Overlay', type: 'tile', visible: true, opacity: 1, tiles: overlayTiles },
+        { id: 'hidden', name: 'Hidden', type: 'tile', visible: false, opacity: 1, tiles: hiddenTiles },
+      ],
+    }
+
+    const room: Room = {
+      id: 1,
+      x: 0,
+      y: 0,
+      w: 1,
+      h: 1,
+      zone_id: 1,
+      type: 'normal',
+      rects: [[0, 0, 1, 1]],
+      neighbors: [],
+      detail,
+    }
+    const mapData: MapData = { width: 10, height: 10, zones: { 1: { name: 'Z', color: '#fff' } }, rooms: [room] }
+
+    const out = buildUnityExportV1(mapData, [], { tilesEncoding: 'raw2d' })
+    expect(out.rooms[0].detail.tilesEncoding).toBe('raw2d')
+    const tiles = out.rooms[0].detail.tiles as number[][]
+    // solid = 1, door = 6 (현재 exporter의 TILE_TYPE_TO_ID 기준)
+    expect(tiles[3][1]).toBe(1)
+    expect(tiles[3][2]).toBe(6)
+  })
+
   it('인접한 방 연결은 door로 export하고 doorway 좌표를 명시한다', () => {
     const makeDetail = (roomId: number): RoomDetail => ({
       roomId,

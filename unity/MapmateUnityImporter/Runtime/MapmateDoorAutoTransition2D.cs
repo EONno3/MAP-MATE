@@ -9,7 +9,7 @@ namespace Mapmate.UnityImporter.Runtime
         [Tooltip("이 오브젝트의 trigger에 들어온 Collider2D가 이 태그를 가져야만 동작합니다. 비워두면 검사하지 않습니다.")]
         [SerializeField] private string requiredOtherTag = "Player";
 
-        [Tooltip("전환 처리를 받을 핸들러(프로젝트에서 구현). 지정하지 않으면 아무 동작도 하지 않습니다.")]
+        [Tooltip("전환 처리를 받을 핸들러(프로젝트에서 구현). 비워두면 씬에서 자동 탐색합니다.")]
         [SerializeField] private MonoBehaviour transitionHandler;
 
         private MapmateLinkEndpoint _endpoint;
@@ -47,7 +47,7 @@ namespace Mapmate.UnityImporter.Runtime
                 return;
             }
 
-            var handler = _handler ?? (_handler = transitionHandler as IMapmateDoorTransitionHandler);
+            var handler = ResolveHandler();
             if (handler == null)
             {
                 Debug.Log($"[MapmateDoorAutoTransition2D] No handler. Door {req.endpointRoomId}->{req.destinationRoomId}", this);
@@ -55,6 +55,26 @@ namespace Mapmate.UnityImporter.Runtime
             }
 
             handler.HandleDoorTransition(req, other);
+        }
+
+        private IMapmateDoorTransitionHandler ResolveHandler()
+        {
+            if (_handler != null) return _handler;
+
+            var fromField = transitionHandler as IMapmateDoorTransitionHandler;
+            if (fromField != null) return _handler = fromField;
+
+            // 0-설정: 씬에서 핸들러를 자동 탐색
+            var behaviours = FindObjectsOfType<MonoBehaviour>();
+            for (var i = 0; i < behaviours.Length; i++)
+            {
+                var mb = behaviours[i];
+                if (mb == null) continue;
+                if (ReferenceEquals(mb, this)) continue;
+                if (mb is IMapmateDoorTransitionHandler h) return _handler = h;
+            }
+
+            return null;
         }
 
         private bool IsAllowed(Collider2D other)

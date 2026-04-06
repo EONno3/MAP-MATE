@@ -62,13 +62,23 @@ namespace Mapmate.UnityImporter.Editor
             EditorGUILayout.Space();
 
             var hasJson = jsonAsset != null || !string.IsNullOrEmpty(jsonFilePath);
-            using (new EditorGUI.DisabledScope(!hasJson || tilePalette == null || prefabPalette == null || settings == null))
+            using (new EditorGUI.DisabledScope(!hasJson))
             {
                 if (GUILayout.Button("Import to Scene", GUILayout.Height(32)))
                 {
                     try
                     {
                         var json = jsonAsset != null ? jsonAsset.text : File.ReadAllText(jsonFilePath);
+
+                        // 0-설정: 팔레트/설정이 비어 있으면 자동 생성하여 채웁니다.
+                        if (tilePalette == null || prefabPalette == null || settings == null)
+                        {
+                            var defaults = MapmateAutoSetup.EnsureDefaults();
+                            if (tilePalette == null) tilePalette = defaults.tilePalette;
+                            if (prefabPalette == null) prefabPalette = defaults.prefabPalette;
+                            if (settings == null) settings = defaults.settings;
+                        }
+
                         MapmateImporter.ImportFromJsonText(json, tilePalette, prefabPalette, settings);
                         EditorUtility.DisplayDialog("Mapmate Import", "Import 완료", "OK");
                     }
@@ -86,6 +96,8 @@ namespace Mapmate.UnityImporter.Editor
                 "- JSON 파싱을 위해 com.unity.nuget.newtonsoft-json 패키지가 필요합니다.\n" +
                 "- tileId=0(empty)는 기본적으로 배치하지 않습니다.\n" +
                 "- 연결은 현재 '문(Door)'로 단일화하여 생성합니다(doorwayA/B 우선, 없으면 portalA/B fallback).\n" +
+                "- Tools > Mapmate > Setup Defaults 로 기본 에셋을 자동 생성할 수 있습니다.\n" +
+                "- 팔레트/설정이 비어 있어도 Import 시 기본값을 자동 생성합니다.\n" +
                 "- prefab 매핑이 없으면 빈 GameObject로라도 생성해서 위치/키를 보존합니다.",
                 MessageType.Info);
         }

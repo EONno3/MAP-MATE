@@ -30,27 +30,56 @@ namespace Mapmate.UnityImporter.Editor
             prefabPaletteAsset.RebuildIndex();
 
             var root = GetOrCreateRoot(settings.rootName);
-            if (settings.clearExistingChildren)
+            var overwriteAll = settings.clearExistingChildren || settings.reimportMode == MapmateReimportMode.OverwriteAll;
+            if (overwriteAll) ClearChildrenImmediate(root.transform);
+
+            var autoRoot = GetOrCreateChild(root.transform, settings.autoRootName);
+            var userRoot = GetOrCreateChild(root.transform, settings.userRootName);
+            if (!overwriteAll)
             {
-                ClearChildrenImmediate(root.transform);
+                // 기본값: Auto만 갱신하고 User 편집은 유지
+                ClearChildrenImmediate(autoRoot);
             }
 
-            // Grid + Tilemap
-            var gridGo = new GameObject(settings.gridName);
-            gridGo.transform.SetParent(root.transform, false);
-            var grid = gridGo.AddComponent<Grid>();
+            // Grid
+            var gridGo = GetOrCreateChildGo(root.transform, settings.gridName);
+            var grid = gridGo.GetComponent<Grid>();
+            if (grid == null) grid = gridGo.AddComponent<Grid>();
             grid.cellSize = new Vector3(settings.unitsPerTile, settings.unitsPerTile, 0f);
 
-            var tilemapGo = new GameObject(settings.tilemapName);
-            tilemapGo.transform.SetParent(gridGo.transform, false);
-            tilemapGo.transform.localPosition = new Vector3(0f, 0f, settings.zLayerTiles);
-            var tilemap = tilemapGo.AddComponent<Tilemap>();
-            tilemapGo.AddComponent<TilemapRenderer>();
+            // Rooms Tilemaps (Grid 하위) - 편집 친화: PerRoom이 기본
+            var roomsRootOnGrid = GetOrCreateChildGo(gridGo.transform, settings.roomsRootName);
+            var autoRoomsRootOnGrid = GetOrCreateChildGo(roomsRootOnGrid.transform, settings.autoRoomsRootName);
+            var userRoomsRootOnGrid = GetOrCreateChildGo(roomsRootOnGrid.transform, settings.userRoomsRootName);
+            if (!overwriteAll)
+            {
+                // Auto 룸 타일맵만 갱신하고 User 룸 타일맵은 유지
+                ClearChildrenImmediate(autoRoomsRootOnGrid.transform);
+            }
 
-            // Rooms
+            // Rooms (메타/오브젝트 그룹핑)
             var roomsById = new Dictionary<int, MapmateUnityExportV1.Room>();
             var roomsRoot = new GameObject("Rooms");
-            roomsRoot.transform.SetParent(root.transform, false);
+            roomsRoot.transform.SetParent(autoRoot, false);
+
+            // Combined(레거시/옵션) 타일맵
+            Tilemap combinedAutoTilemap = null;
+            if (settings.tilemapLayout == MapmateTilemapLayout.Combined)
+            {
+                var autoTilemapGo = GetOrCreateChildGo(gridGo.transform, settings.autoTilemapName);
+                autoTilemapGo.transform.localPosition = new Vector3(0f, 0f, settings.zLayerTiles);
+                combinedAutoTilemap = autoTilemapGo.GetComponent<Tilemap>();
+                if (combinedAutoTilemap == null) combinedAutoTilemap = autoTilemapGo.AddComponent<Tilemap>();
+                if (autoTilemapGo.GetComponent<TilemapRenderer>() == null) autoTilemapGo.AddComponent<TilemapRenderer>();
+                combinedAutoTilemap.ClearAllTiles();
+                EnsureTilemapPhysics(autoTilemapGo, settings);
+
+                var userTilemapGo = GetOrCreateChildGo(gridGo.transform, settings.userTilemapName);
+                userTilemapGo.transform.localPosition = new Vector3(0f, 0f, settings.zLayerTiles);
+                if (userTilemapGo.GetComponent<Tilemap>() == null) userTilemapGo.AddComponent<Tilemap>();
+                if (userTilemapGo.GetComponent<TilemapRenderer>() == null) userTilemapGo.AddComponent<TilemapRenderer>();
+                EnsureTilemapPhysics(userTilemapGo, settings);
+            }
 
             foreach (var room in data.rooms ?? new List<MapmateUnityExportV1.Room>())
             {
@@ -64,13 +93,43 @@ namespace Mapmate.UnityImporter.Editor
                 var originX = room.worldTileOrigin.x;
                 var originY = room.worldTileOrigin.y;
 
+                Tilemap roomAutoTilemap = null;
+                if (settings.tilemapLayout == MapmateTilemapLayout.PerRoom)
+                {
+                    var roomAutoRoot = GetOrCreateChildGo(autoRoomsRootOnGrid.transform, $"Room_{room.id}");
+                    var roomUserRoot = GetOrCreateChildGo(userRoomsRootOnGrid.transform, $"Room_{room.id}");
+
+                    // AutoTilemap
+                    var roomAutoTilemapGo = GetOrCreateChildGo(roomAutoRoot.transform, settings.autoTilemapName);
+                    roomAutoTilemapGo.transform.localPosition = RoomOriginLocal(gridGo.transform, grid, originX, originY, settings.zLayerTiles);
+                    roomAutoTilemap = roomAutoTilemapGo.GetComponent<Tilemap>();
+                    if (roomAutoTilemap == null) roomAutoTilemap = roomAutoTilemapGo.AddComponent<Tilemap>();
+                    if (roomAutoTilemapGo.GetComponent<TilemapRenderer>() == null) roomAutoTilemapGo.AddComponent<TilemapRenderer>();
+                    roomAutoTilemap.ClearAllTiles();
+                    EnsureTilemapPhysics(roomAutoTilemapGo, settings);
+
+                    // UserTilemap (유지)
+                    var roomUserTilemapGo = GetOrCreateChildGo(roomUserRoot.transform, settings.userTilemapName);
+                    roomUserTilemapGo.transform.localPosition = RoomOriginLocal(gridGo.transform, grid, originX, originY, settings.zLayerTiles);
+                    if (roomUserTilemapGo.GetComponent<Tilemap>() == null) roomUserTilemapGo.AddComponent<Tilemap>();
+                    if (roomUserTilemapGo.GetComponent<TilemapRenderer>() == null) roomUserTilemapGo.AddComponent<TilemapRenderer>();
+                    EnsureTilemapPhysics(roomUserTilemapGo, settings);
+                }
+
                 for (var y = 0; y < detail.tileHeight; y++)
                 for (var x = 0; x < detail.tileWidth; x++)
                 {
                     var tileId = tiles[y, x];
                     if (tileId == 0) continue; // empty
                     if (!tilePaletteAsset.TryGetTileById(tileId, out var tile)) continue;
-                    tilemap.SetTile(new Vector3Int(originX + x, originY + y, 0), tile);
+                    if (settings.tilemapLayout == MapmateTilemapLayout.Combined && combinedAutoTilemap != null)
+                    {
+                        combinedAutoTilemap.SetTile(new Vector3Int(originX + x, originY + y, 0), tile);
+                    }
+                    else if (settings.tilemapLayout == MapmateTilemapLayout.PerRoom && roomAutoTilemap != null)
+                    {
+                        roomAutoTilemap.SetTile(new Vector3Int(x, y, 0), tile);
+                    }
                 }
 
                 // objects
@@ -82,24 +141,27 @@ namespace Mapmate.UnityImporter.Editor
                 {
                     if (obj == null) continue;
                     var prefabKey = obj.key; // v1: key를 prefabKey로 사용(팔레트에서 매핑)
+                    var worldPos = ToWorld(grid, originX + obj.x, originY + obj.y, settings.zLayerObjects, settings.placeAtCellCenter);
                     if (!prefabPaletteAsset.TryGetPrefab(prefabKey, out var prefab) || prefab == null)
                     {
                         // 매핑이 없으면 빈 오브젝트라도 생성해서 위치/키를 보존
                         var fallback = new GameObject($"Obj_{prefabKey}");
                         fallback.transform.SetParent(objsRoot.transform, false);
-                        fallback.transform.position = ToWorld(grid, originX + obj.x, originY + obj.y, settings.zLayerObjects, settings.placeAtCellCenter);
+                        fallback.transform.position = worldPos;
+                        TryAttachSpawnPoint(fallback, prefabKey, room.id);
                         continue;
                     }
 
                     var inst = (GameObject)PrefabUtility.InstantiatePrefab(prefab, objsRoot.transform);
                     inst.name = $"{prefabKey}_{room.id}_{obj.x}_{obj.y}";
-                    inst.transform.position = ToWorld(grid, originX + obj.x, originY + obj.y, settings.zLayerObjects, settings.placeAtCellCenter);
+                    inst.transform.position = worldPos;
+                    TryAttachSpawnPoint(inst, prefabKey, room.id);
                 }
             }
 
             // Connections
             var linksRoot = new GameObject(settings.linksRootName);
-            linksRoot.transform.SetParent(root.transform, false);
+            linksRoot.transform.SetParent(autoRoot, false);
 
             var doorsRoot = new GameObject(settings.doorsRootName);
             doorsRoot.transform.SetParent(linksRoot.transform, false);
@@ -147,6 +209,13 @@ namespace Mapmate.UnityImporter.Editor
                 CreateDoorEndpointObject(grid, settings, doorRoot.transform, "B", conn, b);
             }
 
+            EnsurePlaySetup(userRoot, grid, prefabPaletteAsset, settings);
+
+            if (settings.logImportSummary)
+            {
+                Debug.Log($"[MapmateImporter] Imported rooms={roomsById.Count}, connections={(data.connections != null ? data.connections.Count : 0)}, layout={settings.tilemapLayout}");
+            }
+
             EditorUtility.SetDirty(root);
             AssetDatabase.SaveAssets();
         }
@@ -158,12 +227,144 @@ namespace Mapmate.UnityImporter.Editor
             return new GameObject(name);
         }
 
+        private static Transform GetOrCreateChild(Transform parent, string name)
+        {
+            return GetOrCreateChildGo(parent, name).transform;
+        }
+
+        private static GameObject GetOrCreateChildGo(Transform parent, string name)
+        {
+            if (parent == null) throw new ArgumentNullException(nameof(parent));
+            if (string.IsNullOrEmpty(name)) name = "Unnamed";
+
+            var t = parent.Find(name);
+            if (t != null) return t.gameObject;
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            return go;
+        }
+
         private static void ClearChildrenImmediate(Transform root)
         {
             for (var i = root.childCount - 1; i >= 0; i--)
             {
                 var child = root.GetChild(i);
                 UnityEngine.Object.DestroyImmediate(child.gameObject);
+            }
+        }
+
+        private static void EnsureTilemapPhysics(GameObject tilemapGo, MapmateImportSettings settings)
+        {
+            if (tilemapGo == null || settings == null) return;
+            if (!settings.addTilemapCollider2D) return;
+
+            var tileCol = tilemapGo.GetComponent<TilemapCollider2D>();
+            if (tileCol == null) tileCol = tilemapGo.AddComponent<TilemapCollider2D>();
+
+            if (!settings.addCompositeCollider2D) return;
+            tileCol.usedByComposite = true;
+
+            var rb = tilemapGo.GetComponent<Rigidbody2D>();
+            if (rb == null) rb = tilemapGo.AddComponent<Rigidbody2D>();
+            rb.bodyType = RigidbodyType2D.Static;
+
+            if (tilemapGo.GetComponent<CompositeCollider2D>() == null)
+            {
+                tilemapGo.AddComponent<CompositeCollider2D>();
+            }
+        }
+
+        private static Vector3 RoomOriginLocal(Transform gridTransform, Grid grid, int originX, int originY, float z)
+        {
+            var cell = new Vector3Int(originX, originY, 0);
+            var world = grid.CellToWorld(cell);
+            var local = gridTransform.InverseTransformPoint(world);
+            local.z = z;
+            return local;
+        }
+
+        private static void TryAttachSpawnPoint(GameObject go, string prefabKey, int roomId)
+        {
+            if (go == null) return;
+            if (!string.Equals(prefabKey, "spawn_point", StringComparison.OrdinalIgnoreCase)) return;
+            var sp = go.GetComponent<MapmateSpawnPoint>();
+            if (sp == null) sp = go.AddComponent<MapmateSpawnPoint>();
+            sp.roomId = roomId;
+        }
+
+        private static void EnsurePlaySetup(Transform userRoot, Grid grid, MapmatePrefabPalette prefabPalette, MapmateImportSettings settings)
+        {
+            if (userRoot == null || settings == null) return;
+
+            var gameplay = GetOrCreateChild(userRoot, "Gameplay");
+
+            if (settings.ensureDefaultTransitionHandler)
+            {
+                if (UnityEngine.Object.FindObjectOfType<MapmateBasicDoorTransitionHandler2D>() == null)
+                {
+                    var handlerGo = new GameObject("MapmateTransitionHandler");
+                    handlerGo.transform.SetParent(gameplay, false);
+                    handlerGo.AddComponent<MapmateBasicDoorTransitionHandler2D>();
+                }
+            }
+
+            Transform player = null;
+            var existingPlayer = GameObject.FindGameObjectWithTag("Player");
+            if (existingPlayer != null) player = existingPlayer.transform;
+
+            if (player == null && !string.IsNullOrEmpty(settings.playerPrefabKey) && prefabPalette != null)
+            {
+                prefabPalette.TryGetPrefab(settings.playerPrefabKey, out var playerPrefab);
+                if (playerPrefab != null)
+                {
+                    var inst = (GameObject)PrefabUtility.InstantiatePrefab(playerPrefab, gameplay);
+                    inst.name = "Player";
+                    inst.tag = "Player";
+                    player = inst.transform;
+                }
+            }
+
+            if (player == null)
+            {
+                // fallback: 최소 플레이어 생성
+                var go = new GameObject("Player");
+                go.transform.SetParent(gameplay, false);
+                go.tag = "Player";
+                go.AddComponent<Rigidbody2D>();
+                go.AddComponent<BoxCollider2D>();
+                go.AddComponent<MapmatePlayerController2D>();
+                player = go.transform;
+            }
+
+            // spawn position
+            var spawnPoints = UnityEngine.Object.FindObjectsOfType<MapmateSpawnPoint>();
+            if (spawnPoints.Length > 0)
+            {
+                player.position = spawnPoints[0].transform.position;
+            }
+
+            if (settings.ensureCameraFollow)
+            {
+                var cam = Camera.main;
+                var hasExisting = cam != null;
+                if (hasExisting && !settings.configureExistingMainCamera)
+                {
+                    // 기존 카메라가 이미 있다면 기본값으로는 건드리지 않습니다.
+                    return;
+                }
+
+                if (cam == null)
+                {
+                    var camGo = new GameObject("Main Camera");
+                    camGo.tag = "MainCamera";
+                    cam = camGo.AddComponent<Camera>();
+                    cam.orthographic = true;
+                    cam.orthographicSize = 6f;
+                }
+
+                var follow = cam.GetComponent<MapmateCameraFollow2D>();
+                if (follow == null) follow = cam.gameObject.AddComponent<MapmateCameraFollow2D>();
+                follow.SetTarget(player);
             }
         }
 
