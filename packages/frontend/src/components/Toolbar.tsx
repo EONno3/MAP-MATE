@@ -208,7 +208,7 @@ export function Toolbar({
           onClick={onUndo}
           disabled={!canUndo || disableEditActions}
           className="btn-base btn-icon"
-          title={`${t.undo} (Ctrl+Z)`}
+          title={`${t.undo} (Ctrl/Cmd+Z)`}
           data-tutorial="toolbar-undo"
         >
           <Undo2 size={18} />
@@ -217,7 +217,7 @@ export function Toolbar({
           onClick={onRedo}
           disabled={!canRedo || disableEditActions}
           className="btn-base btn-icon"
-          title={`${t.redo} (Ctrl+Y)`}
+          title={`${t.redo} (Ctrl/Cmd+Y 또는 Ctrl/Cmd+Shift+Z)`}
           data-tutorial="toolbar-redo"
         >
           <Redo2 size={18} />

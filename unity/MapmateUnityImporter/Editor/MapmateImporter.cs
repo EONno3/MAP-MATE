@@ -10,6 +10,84 @@ namespace Mapmate.UnityImporter.Editor
 {
     internal static class MapmateImporter
     {
+        private enum MapmateTileLayer
+        {
+            Ground = 0,
+            OneWay = 1,
+            Hazard = 2,
+            Deco = 3,
+        }
+
+        private static string GetLayerSuffix(MapmateTileLayer layer)
+        {
+            if (layer == MapmateTileLayer.Ground) return string.Empty;
+            if (layer == MapmateTileLayer.OneWay) return "_OneWay";
+            if (layer == MapmateTileLayer.Hazard) return "_Hazard";
+            return "_Deco";
+        }
+
+        private static MapmateTileLayer GetDefaultLayerForTileId(int tileId)
+        {
+            // Default mapping (MapmateAutoSetup 기준):
+            // 1 solid, 2 platform, 3 spike, 4 acid, 5 breakable, 6 door
+            if (tileId == 2) return MapmateTileLayer.OneWay;
+            if (tileId == 3 || tileId == 4) return MapmateTileLayer.Hazard;
+            if (tileId == 6) return MapmateTileLayer.Deco;
+            return MapmateTileLayer.Ground;
+        }
+
+        private static GameObject GetOrCreateLayeredTilemapGo(
+            Transform parent,
+            string baseName,
+            MapmateTileLayer layer,
+            Vector3 localPosition)
+        {
+            var name = baseName + GetLayerSuffix(layer);
+            var go = GetOrCreateChildGo(parent, name);
+            go.transform.localPosition = localPosition;
+            if (go.GetComponent<Tilemap>() == null) go.AddComponent<Tilemap>();
+            if (go.GetComponent<TilemapRenderer>() == null) go.AddComponent<TilemapRenderer>();
+            return go;
+        }
+
+        private static void EnsureLayerPhysics(GameObject tilemapGo, MapmateImportSettings settings, MapmateTileLayer layer)
+        {
+            if (tilemapGo == null || settings == null) return;
+
+            if (layer == MapmateTileLayer.Ground)
+            {
+                EnsureTilemapPhysics(tilemapGo, settings);
+                return;
+            }
+
+            if (layer == MapmateTileLayer.Deco)
+            {
+                // Visual only by default
+                return;
+            }
+
+            if (layer == MapmateTileLayer.Hazard)
+            {
+                var col = tilemapGo.GetComponent<TilemapCollider2D>();
+                if (col == null) col = tilemapGo.AddComponent<TilemapCollider2D>();
+                col.isTrigger = true;
+                col.usedByComposite = false;
+                return;
+            }
+
+            // OneWay
+            var oneWayCol = tilemapGo.GetComponent<TilemapCollider2D>();
+            if (oneWayCol == null) oneWayCol = tilemapGo.AddComponent<TilemapCollider2D>();
+            oneWayCol.isTrigger = false;
+            oneWayCol.usedByComposite = false;
+            oneWayCol.usedByEffector = true;
+
+            var eff = tilemapGo.GetComponent<PlatformEffector2D>();
+            if (eff == null) eff = tilemapGo.AddComponent<PlatformEffector2D>();
+            eff.useOneWay = true;
+            eff.useSideFriction = false;
+        }
+
         public static void ImportFromJsonText(
             string json,
             MapmateTilePalette tilePaletteAsset,
@@ -64,15 +142,37 @@ namespace Mapmate.UnityImporter.Editor
 
             // Combined(레거시/옵션) 타일맵
             Tilemap combinedAutoTilemap = null;
+            Tilemap combinedAutoOneWay = null;
+            Tilemap combinedAutoHazard = null;
+            Tilemap combinedAutoDeco = null;
             if (settings.tilemapLayout == MapmateTilemapLayout.Combined)
             {
-                var autoTilemapGo = GetOrCreateChildGo(gridGo.transform, settings.autoTilemapName);
-                autoTilemapGo.transform.localPosition = new Vector3(0f, 0f, settings.zLayerTiles);
-                combinedAutoTilemap = autoTilemapGo.GetComponent<Tilemap>();
-                if (combinedAutoTilemap == null) combinedAutoTilemap = autoTilemapGo.AddComponent<Tilemap>();
-                if (autoTilemapGo.GetComponent<TilemapRenderer>() == null) autoTilemapGo.AddComponent<TilemapRenderer>();
-                combinedAutoTilemap.ClearAllTiles();
-                EnsureTilemapPhysics(autoTilemapGo, settings);
+                var basePos = new Vector3(0f, 0f, settings.zLayerTiles);
+                var autoGroundGo = GetOrCreateLayeredTilemapGo(gridGo.transform, settings.autoTilemapName, MapmateTileLayer.Ground, basePos);
+                combinedAutoTilemap = autoGroundGo.GetComponent<Tilemap>();
+                EnsureLayerPhysics(autoGroundGo, settings, MapmateTileLayer.Ground);
+
+                if (settings.useLayeredTilemaps)
+                {
+                    var autoOneWayGo = GetOrCreateLayeredTilemapGo(gridGo.transform, settings.autoTilemapName, MapmateTileLayer.OneWay, basePos);
+                    var autoHazardGo = GetOrCreateLayeredTilemapGo(gridGo.transform, settings.autoTilemapName, MapmateTileLayer.Hazard, basePos);
+                    var autoDecoGo = GetOrCreateLayeredTilemapGo(gridGo.transform, settings.autoTilemapName, MapmateTileLayer.Deco, basePos);
+                    combinedAutoOneWay = autoOneWayGo.GetComponent<Tilemap>();
+                    combinedAutoHazard = autoHazardGo.GetComponent<Tilemap>();
+                    combinedAutoDeco = autoDecoGo.GetComponent<Tilemap>();
+
+                    EnsureLayerPhysics(autoOneWayGo, settings, MapmateTileLayer.OneWay);
+                    EnsureLayerPhysics(autoHazardGo, settings, MapmateTileLayer.Hazard);
+                    EnsureLayerPhysics(autoDecoGo, settings, MapmateTileLayer.Deco);
+                }
+
+                if (settings.importTilesIntoAutoTilemaps)
+                {
+                    combinedAutoTilemap.ClearAllTiles();
+                    combinedAutoOneWay?.ClearAllTiles();
+                    combinedAutoHazard?.ClearAllTiles();
+                    combinedAutoDeco?.ClearAllTiles();
+                }
 
                 var userTilemapGo = GetOrCreateChildGo(gridGo.transform, settings.userTilemapName);
                 userTilemapGo.transform.localPosition = new Vector3(0f, 0f, settings.zLayerTiles);
@@ -94,23 +194,45 @@ namespace Mapmate.UnityImporter.Editor
                 var originY = room.worldTileOrigin.y;
 
                 Tilemap roomAutoTilemap = null;
+                Tilemap roomAutoOneWay = null;
+                Tilemap roomAutoHazard = null;
+                Tilemap roomAutoDeco = null;
                 if (settings.tilemapLayout == MapmateTilemapLayout.PerRoom)
                 {
                     var roomAutoRoot = GetOrCreateChildGo(autoRoomsRootOnGrid.transform, $"Room_{room.id}");
                     var roomUserRoot = GetOrCreateChildGo(userRoomsRootOnGrid.transform, $"Room_{room.id}");
 
                     // AutoTilemap
-                    var roomAutoTilemapGo = GetOrCreateChildGo(roomAutoRoot.transform, settings.autoTilemapName);
-                    roomAutoTilemapGo.transform.localPosition = RoomOriginLocal(gridGo.transform, grid, originX, originY, settings.zLayerTiles);
-                    roomAutoTilemap = roomAutoTilemapGo.GetComponent<Tilemap>();
-                    if (roomAutoTilemap == null) roomAutoTilemap = roomAutoTilemapGo.AddComponent<Tilemap>();
-                    if (roomAutoTilemapGo.GetComponent<TilemapRenderer>() == null) roomAutoTilemapGo.AddComponent<TilemapRenderer>();
-                    roomAutoTilemap.ClearAllTiles();
-                    EnsureTilemapPhysics(roomAutoTilemapGo, settings);
+                    var roomOriginLocal = RoomOriginLocal(gridGo.transform, grid, originX, originY, settings.zLayerTiles);
+                    var roomAutoGroundGo = GetOrCreateLayeredTilemapGo(roomAutoRoot.transform, settings.autoTilemapName, MapmateTileLayer.Ground, roomOriginLocal);
+                    roomAutoTilemap = roomAutoGroundGo.GetComponent<Tilemap>();
+                    EnsureLayerPhysics(roomAutoGroundGo, settings, MapmateTileLayer.Ground);
+
+                    if (settings.useLayeredTilemaps)
+                    {
+                        var roomAutoOneWayGo = GetOrCreateLayeredTilemapGo(roomAutoRoot.transform, settings.autoTilemapName, MapmateTileLayer.OneWay, roomOriginLocal);
+                        var roomAutoHazardGo = GetOrCreateLayeredTilemapGo(roomAutoRoot.transform, settings.autoTilemapName, MapmateTileLayer.Hazard, roomOriginLocal);
+                        var roomAutoDecoGo = GetOrCreateLayeredTilemapGo(roomAutoRoot.transform, settings.autoTilemapName, MapmateTileLayer.Deco, roomOriginLocal);
+                        roomAutoOneWay = roomAutoOneWayGo.GetComponent<Tilemap>();
+                        roomAutoHazard = roomAutoHazardGo.GetComponent<Tilemap>();
+                        roomAutoDeco = roomAutoDecoGo.GetComponent<Tilemap>();
+
+                        EnsureLayerPhysics(roomAutoOneWayGo, settings, MapmateTileLayer.OneWay);
+                        EnsureLayerPhysics(roomAutoHazardGo, settings, MapmateTileLayer.Hazard);
+                        EnsureLayerPhysics(roomAutoDecoGo, settings, MapmateTileLayer.Deco);
+                    }
+
+                    if (settings.importTilesIntoAutoTilemaps)
+                    {
+                        roomAutoTilemap.ClearAllTiles();
+                        roomAutoOneWay?.ClearAllTiles();
+                        roomAutoHazard?.ClearAllTiles();
+                        roomAutoDeco?.ClearAllTiles();
+                    }
 
                     // UserTilemap (유지)
                     var roomUserTilemapGo = GetOrCreateChildGo(roomUserRoot.transform, settings.userTilemapName);
-                    roomUserTilemapGo.transform.localPosition = RoomOriginLocal(gridGo.transform, grid, originX, originY, settings.zLayerTiles);
+                    roomUserTilemapGo.transform.localPosition = roomOriginLocal;
                     if (roomUserTilemapGo.GetComponent<Tilemap>() == null) roomUserTilemapGo.AddComponent<Tilemap>();
                     if (roomUserTilemapGo.GetComponent<TilemapRenderer>() == null) roomUserTilemapGo.AddComponent<TilemapRenderer>();
                     EnsureTilemapPhysics(roomUserTilemapGo, settings);
@@ -119,9 +241,39 @@ namespace Mapmate.UnityImporter.Editor
                 for (var y = 0; y < detail.tileHeight; y++)
                 for (var x = 0; x < detail.tileWidth; x++)
                 {
+                    if (!settings.importTilesIntoAutoTilemaps) continue;
                     var tileId = tiles[y, x];
                     if (tileId == 0) continue; // empty
                     if (!tilePaletteAsset.TryGetTileById(tileId, out var tile)) continue;
+
+                    if (settings.useLayeredTilemaps)
+                    {
+                        var layer = GetDefaultLayerForTileId(tileId);
+                        if (settings.tilemapLayout == MapmateTilemapLayout.Combined)
+                        {
+                            var dst = layer switch
+                            {
+                                MapmateTileLayer.Ground => combinedAutoTilemap,
+                                MapmateTileLayer.OneWay => combinedAutoOneWay,
+                                MapmateTileLayer.Hazard => combinedAutoHazard,
+                                _ => combinedAutoDeco
+                            };
+                            dst?.SetTile(new Vector3Int(originX + x, originY + y, 0), tile);
+                        }
+                        else if (settings.tilemapLayout == MapmateTilemapLayout.PerRoom)
+                        {
+                            var dst = layer switch
+                            {
+                                MapmateTileLayer.Ground => roomAutoTilemap,
+                                MapmateTileLayer.OneWay => roomAutoOneWay,
+                                MapmateTileLayer.Hazard => roomAutoHazard,
+                                _ => roomAutoDeco
+                            };
+                            dst?.SetTile(new Vector3Int(x, y, 0), tile);
+                        }
+                        continue;
+                    }
+
                     if (settings.tilemapLayout == MapmateTilemapLayout.Combined && combinedAutoTilemap != null)
                     {
                         combinedAutoTilemap.SetTile(new Vector3Int(originX + x, originY + y, 0), tile);

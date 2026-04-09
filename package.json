@@ -1,6 +1,6 @@
 {
   "name": "mapmate-monorepo",
-  "version": "0.0.1",
+  "version": "1.8.0",
   "private": true,
   "scripts": {
     "dev": "pnpm -r dev"

@@ -7,6 +7,7 @@ import { useCanvasTransform } from '../../hooks/useCanvasTransform'
 import { Translations } from '../../i18n/translations'
 import { getSquareBrushBounds } from '../../lib/brushBounds'
 import { drawSvgIcon } from '../../lib/iconRenderer'
+import { isInputOrTextAreaTarget, isTextEditingTarget } from '../../lib/keyboard'
 
 export type RoomToolMode = 'brush' | 'fill'
 
@@ -633,8 +634,7 @@ export function RoomCanvas({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space' && !e.repeat) {
-        const target = e.target as HTMLElement
-        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+        if (!isInputOrTextAreaTarget(e.target)) {
           e.preventDefault()
           setIsSpaceDown(true)
         }
@@ -657,7 +657,7 @@ export function RoomCanvas({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedObjectInstance) {
-        if ((e.target as HTMLElement).tagName === 'INPUT') return
+        if (isTextEditingTarget(e.target)) return
         deleteSelectedObject()
       }
       if (e.key === 'Escape') {
@@ -704,7 +704,7 @@ export function RoomCanvas({
   return (
     <div
       ref={containerRef}
-      data-tutorial="canvas-view"
+      data-tutorial="room-canvas-bg"
       style={{
         flex: 1,
         position: 'relative',

@@ -70,6 +70,7 @@ namespace Mapmate.UnityImporter.Editor
             settings.reimportMode = MapmateReimportMode.PreserveUserEdits;
             settings.clearExistingChildren = false;
             settings.tilemapLayout = MapmateTilemapLayout.PerRoom;
+            settings.useLayeredTilemaps = true;
             settings.addDoorEndpointAutoTransition2D = true;
             settings.ensureDefaultTransitionHandler = true;
             settings.ensureCameraFollow = false;

@@ -1,6 +1,6 @@
 {
   "name": "backend-api",
-  "version": "0.0.0",
+  "version": "1.8.0",
   "main": "src/index.ts",
   "scripts": {
     "dev": "ts-node-dev --respawn src/index.ts"

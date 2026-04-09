@@ -9,10 +9,13 @@ import { ObjectPalette } from './ObjectPalette'
 import { TagEditor } from './TagEditor'
 import { PlayTestMode } from './PlayTestMode'
 import { RoomNavigator } from './RoomNavigator'
+import { UnsavedChangesDialog } from './UnsavedChangesDialog'
 import { useHistory } from '../../hooks/useHistory'
+import { useSaveHotkey } from '../../hooks/useSaveHotkey'
 import { RadialMenu, RadialMenuItem } from '../RadialMenu'
 import type { TileCatalogApi } from '../../hooks/useTileCatalog'
 import { selectTileKeyByDigitHotkey } from '../../lib/tileHotkeys'
+import { isCtrlOrCmdPressed, isInputOrTextAreaTarget, isTextEditingTarget } from '../../lib/keyboard'
 // API URL
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -23,6 +26,7 @@ interface RoomEditorProps {
   connections?: Connection[]
   onBack: () => void
   onSave: (room: Room) => void
+  onNavigateToRoom?: (roomId: number) => void
   onUpdateMapSettings?: (settings: PlayTestSettings) => void
   t: Translations
   tileCatalog: TileCatalogApi
@@ -85,7 +89,7 @@ const OBJECT_WHEEL_ITEMS: RadialMenuItem[] = [
   { id: 'transition', label: '방 전환', icon: OBJECT_ICONS.transition, color: '#ec4899' }
 ]
 
-export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, onUpdateMapSettings, t, tileCatalog }: RoomEditorProps) {
+export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, onNavigateToRoom, onUpdateMapSettings, t, tileCatalog }: RoomEditorProps) {
   // Initialize room detail with history
   const {
     state: roomDetail,
@@ -108,6 +112,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
   const [brushSize, setBrushSize] = useState(1)
   const [toolMode, setToolMode] = useState<RoomToolMode>('brush')
   const [activeTab, setActiveTab] = useState<'tiles' | 'objects' | 'layers'>('tiles')
+  const [pendingLeaveAction, setPendingLeaveAction] = useState<null | { type: 'back' } | { type: 'navigateToRoom', roomId: number }>(null)
 
   const {
     items: tileItems,
@@ -256,6 +261,24 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
     setHasChanges(false)
   }, [room, roomDetail, onSave])
 
+  useSaveHotkey({ enabled: true, onSave: handleSave })
+
+  const proceedLeave = useCallback((action: { type: 'back' } | { type: 'navigateToRoom', roomId: number }) => {
+    if (action.type === 'back') {
+      onBack()
+      return
+    }
+    onNavigateToRoom?.(action.roomId)
+  }, [onBack, onNavigateToRoom])
+
+  const requestLeave = useCallback((action: { type: 'back' } | { type: 'navigateToRoom', roomId: number }) => {
+    if (!hasChanges) {
+      proceedLeave(action)
+      return
+    }
+    setPendingLeaveAction(action)
+  }, [hasChanges, proceedLeave])
+
   // Handle reset
   const handleReset = useCallback(() => {
     if (confirm(t.confirmReset)) {
@@ -264,16 +287,15 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
     }
   }, [room, t, setRoomDetailHistory])
 
-  // Handle back with unsaved changes warning
   const handleBack = useCallback(() => {
-    if (hasChanges) {
-      if (confirm(t.unsavedChanges)) {
-        onBack()
-      }
-    } else {
-      onBack()
-    }
-  }, [hasChanges, onBack, t])
+    requestLeave({ type: 'back' })
+  }, [requestLeave])
+
+  const handleNavigatorDoubleClickRoom = useCallback((roomId: number) => {
+    if (!onNavigateToRoom) return
+    if (roomId === room.id) return
+    requestLeave({ type: 'navigateToRoom', roomId })
+  }, [onNavigateToRoom, requestLeave, room.id])
 
   // Tool selection - when object is selected, deselect tile mode
   const handleSelectObject = useCallback((obj: ObjectType | null) => {
@@ -321,13 +343,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
       // 텍스트 입력 중에는 브라우저 기본 undo(입력 되돌리기)를 우선
-      const isTextEditing =
-        target.isContentEditable ||
-        target.tagName === 'TEXTAREA' ||
-        (target.tagName === 'INPUT' &&
-          ['text', 'search', 'email', 'password', 'url', 'tel'].includes(
-            ((target as HTMLInputElement).type || '').toLowerCase()
-          ))
+      const isTextEditing = isTextEditingTarget(target)
 
       // Alt+1~9: 팔레트 순서 타일 빠른 선택 (커스텀 타일도 포함)
       if (e.altKey && !e.repeat) {
@@ -343,7 +359,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
       }
 
       // Ctrl+Z/Y 처리
-      if (e.ctrlKey || e.metaKey) {
+      if (isCtrlOrCmdPressed(e)) {
         // NOTE: e.key는 키보드 레이아웃/IME 영향으로 달라질 수 있어 e.code를 사용
         if (e.code === 'KeyZ') {
           if (isTextEditing) return
@@ -410,7 +426,7 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
 
       // 짧게 누르면 도구 전환
       const target = e.target as HTMLElement
-      const isTextEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
+      const isTextEditing = isInputOrTextAreaTarget(target)
       if (!isTextEditing && e.key === '1' && !showTileWheel) {
         handleSelectTile(selectedTile)
       } else if (!isTextEditing && e.key === '2' && !showObjectWheel) {
@@ -618,10 +634,10 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
           {/* Top Global Actions */}
           <div style={{ padding: 16, borderBottom: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button key="btn-undo" onClick={undo} disabled={!canUndo} title={`${t.undo} (Ctrl + Z)`} className="btn-base" style={{ flex: 1, padding: '8px', backgroundColor: canUndo ? 'var(--bg-panel-hover)' : 'transparent', color: canUndo ? 'var(--text-main)' : 'var(--text-muted)' }}>
+              <button key="btn-undo" onClick={undo} disabled={!canUndo} title={`${t.undo} (Ctrl/Cmd+Z)`} className="btn-base" style={{ flex: 1, padding: '8px', backgroundColor: canUndo ? 'var(--bg-panel-hover)' : 'transparent', color: canUndo ? 'var(--text-main)' : 'var(--text-muted)' }}>
                 <Undo2 size={16} /> {t.undo}
               </button>
-              <button key="btn-redo" onClick={redo} disabled={!canRedo} title={`${t.redo} (Ctrl + Y)`} className="btn-base" style={{ flex: 1, padding: '8px', backgroundColor: canRedo ? 'var(--bg-panel-hover)' : 'transparent', color: canRedo ? 'var(--text-main)' : 'var(--text-muted)' }}>
+              <button key="btn-redo" onClick={redo} disabled={!canRedo} title={`${t.redo} (Ctrl/Cmd+Y 또는 Ctrl/Cmd+Shift+Z)`} className="btn-base" style={{ flex: 1, padding: '8px', backgroundColor: canRedo ? 'var(--bg-panel-hover)' : 'transparent', color: canRedo ? 'var(--text-main)' : 'var(--text-muted)' }}>
                 <Redo2 size={16} /> {t.redo}
               </button>
             </div>
@@ -805,7 +821,14 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
               })()}
 
               {/* Navigation Guide (Mini-map) */}
-              {mapData && <RoomNavigator mapData={mapData} currentRoom={room} connections={connections} />}
+              {mapData && (
+                <RoomNavigator
+                  mapData={mapData}
+                  currentRoom={room}
+                  connections={connections}
+                  onDoubleClickRoom={handleNavigatorDoubleClickRoom}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -838,6 +861,28 @@ export function RoomEditor({ room, zone, mapData, connections, onBack, onSave, o
           onUpdateSettings={onUpdateMapSettings}
         />
       )}
+
+      <UnsavedChangesDialog
+        isOpen={pendingLeaveAction !== null}
+        title={t.unsavedChangesDialogTitle}
+        description={t.unsavedChangesDialogDescription}
+        stayLabel={t.unsavedChangesDialogStayEditing}
+        leaveWithoutSavingLabel={t.unsavedChangesDialogLeaveWithoutSaving}
+        saveAndLeaveLabel={t.unsavedChangesDialogSaveAndLeave}
+        onStay={() => setPendingLeaveAction(null)}
+        onLeaveWithoutSaving={() => {
+          const action = pendingLeaveAction
+          setPendingLeaveAction(null)
+          if (action) proceedLeave(action)
+        }}
+        onSaveAndLeave={() => {
+          const action = pendingLeaveAction
+          setPendingLeaveAction(null)
+          if (!action) return
+          handleSave()
+          proceedLeave(action)
+        }}
+      />
     </div>
   )
 }

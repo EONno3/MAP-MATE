@@ -17,9 +17,10 @@ import { Loader2, Map, Upload, Edit2, Copy, Trash2, X } from 'lucide-react'
 import { TutorialOverlay } from './components/TutorialOverlay'
 import { LocalSaveModal } from './components/LocalSaveModal'
 import { saveToLocal, getLocalSave, getLastUpdatedSaveId } from './lib/localSaveManager'
+import { isCtrlOrCmdPressed, isInputOrTextAreaTarget, isInputTextAreaOrSelectTarget, isTextEditingTarget } from './lib/keyboard'
 
 export default function App() {
-  const BUILD_ID = 'fix-undo-ui-20260202'
+  const BUILD_ID = 'v1.8.0'
   const [paramPanelOpen, setParamPanelOpen] = useState(true)
   const [zonePanelOpen, setZonePanelOpen] = useState(false)
   const [editMode, setEditMode] = useState<'world' | 'room'>('world')
@@ -153,16 +154,10 @@ export default function App() {
       if (editMode === 'room') return
 
       // 텍스트 입력 중에는 브라우저 기본 undo(입력 되돌리기)를 우선
-      const isTextEditing =
-        target.isContentEditable ||
-        target.tagName === 'TEXTAREA' ||
-        (target.tagName === 'INPUT' &&
-          ['text', 'search', 'email', 'password', 'url', 'tel'].includes(
-            ((target as HTMLInputElement).type || '').toLowerCase()
-          ))
+      const isTextEditing = isTextEditingTarget(target)
 
       // Ctrl/Cmd + 키 조합
-      if (e.ctrlKey || e.metaKey) {
+      if (isCtrlOrCmdPressed(e)) {
         // NOTE: e.key는 키보드 레이아웃/IME(한글 입력) 영향으로 'ㅋ'처럼 들어올 수 있어
         // 단축키는 물리 키 기준(e.code: KeyZ/KeyY/KeyC...)으로 처리한다.
         switch (e.code) {
@@ -186,17 +181,17 @@ export default function App() {
             redo()
             break
           case 'KeyC':
-            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+            if (isInputOrTextAreaTarget(target)) return
             e.preventDefault()
             copySelectedRooms()
             break
           case 'KeyV':
-            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+            if (isInputOrTextAreaTarget(target)) return
             e.preventDefault()
             pasteRooms()
             break
           case 'KeyA':
-            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+            if (isInputOrTextAreaTarget(target)) return
             e.preventDefault()
             selectAllRooms()
             break
@@ -205,7 +200,7 @@ export default function App() {
       }
 
       // 입력/선택 UI 포커스 중엔 나머지 단축키(도구 변경 등) 무시
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+      if (isInputTextAreaOrSelectTarget(target)) {
         return
       }
 
@@ -405,6 +400,7 @@ export default function App() {
           connections={connections}
           onBack={exitRoomEditor}
           onSave={handleSaveRoom}
+          onNavigateToRoom={enterRoomEditor}
           onUpdateMapSettings={handleUpdateMapSettings}
           t={t}
           tileCatalog={tileCatalog}

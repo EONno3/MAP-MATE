@@ -22,6 +22,13 @@ namespace Mapmate.UnityImporter.Runtime
         [Tooltip("타일맵 생성 방식. PerRoom을 권장합니다(편집/관리 용이).")]
         public MapmateTilemapLayout tilemapLayout = MapmateTilemapLayout.PerRoom;
 
+        [Tooltip("true면 타일을 역할별 Tilemap으로 분리합니다(권장). 예: Ground/OneWay/Hazard/Deco")]
+        public bool useLayeredTilemaps = true;
+
+        [Header("타일 임포트")]
+        [Tooltip("true면 Auto 타일맵에 타일을 그립니다. false면 Auto 타일은 그리지 않고(베이크 후 User 편집 권장), 오브젝트/연결만 임포트합니다.")]
+        public bool importTilesIntoAutoTilemaps = true;
+
         [Tooltip("Grid 하위의 Rooms 루트 이름")]
         public string roomsRootName = "Rooms";
 

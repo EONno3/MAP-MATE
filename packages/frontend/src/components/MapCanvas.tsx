@@ -5,6 +5,7 @@ import { Tooltip } from './Tooltip'
 import { Translations } from '../i18n/translations'
 import { getContrastColor } from '../lib/colorUtils'
 import { drawSvgIcon } from '../lib/iconRenderer'
+import { isInputOrTextAreaTarget, isInputTextAreaOrSelectTarget } from '../lib/keyboard'
 
 const CELL_SIZE = 40
 
@@ -816,8 +817,7 @@ export function MapCanvas({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space' && !e.repeat) {
-        const target = e.target as HTMLElement
-        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+        if (!isInputOrTextAreaTarget(e.target)) {
           e.preventDefault()
           setIsSpaceDown(true)
         }
@@ -913,9 +913,7 @@ export function MapCanvas({
 
       if ((e.key === 'Delete' || e.key === 'Backspace')) {
         // Don't delete if typing in an input
-        if ((e.target as HTMLElement).tagName === 'INPUT' ||
-          (e.target as HTMLElement).tagName === 'TEXTAREA' ||
-          (e.target as HTMLElement).tagName === 'SELECT') return
+        if (isInputTextAreaOrSelectTarget(e.target)) return
 
         // 연결선 삭제
         if (selectedConnection && onDeleteConnection) {
@@ -1197,7 +1195,7 @@ export function MapCanvas({
   return (
     <div
       ref={containerRef}
-      data-tutorial="canvas-view"
+      data-tutorial="map-canvas-bg"
       style={{
         flex: 1,
         position: 'relative',

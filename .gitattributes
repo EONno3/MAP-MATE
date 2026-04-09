@@ -1,0 +1,37 @@
+# Line ending normalization (avoid CRLF/LF churn)
+#
+# - Default: keep text files in LF in the repository.
+# - Allow Windows shell scripts to remain CRLF when needed.
+# - Mark common binary formats as binary to avoid corruption.
+
+* text=auto eol=lf
+
+# Windows scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binaries
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+
+# Unity (YAML/text) & code
+*.cs text eol=lf
+*.unity text eol=lf
+*.prefab text eol=lf
+*.asset text eol=lf
+*.meta text eol=lf
+*.mat text eol=lf
+*.controller text eol=lf
+*.anim text eol=lf
+*.asmdef text eol=lf
+*.shader text eol=lf
+*.compute text eol=lf
+*.uss text eol=lf
+*.uxml text eol=lf
+

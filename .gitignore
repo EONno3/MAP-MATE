@@ -68,6 +68,7 @@ ENV
 .cursor/
 .gemini/
 .vooster/
+.playwright-mcp/
 
 # Backups
 bak/

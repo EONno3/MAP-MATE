@@ -1,91 +1,18 @@
-import React, { useRef, useEffect } from 'react'
-import { Room, MapData, Connection, GATE_COLORS } from '../../types/map'
+import React, { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Room, MapData, Connection } from '../../types/map'
+import { RoomNavigatorCanvas } from './RoomNavigatorCanvas'
 
 interface RoomNavigatorProps {
     mapData: MapData
     currentRoom: Room
     connections?: Connection[]
+    onDoubleClickRoom?: (roomId: number) => void
 }
 
-export function RoomNavigator({ mapData, currentRoom, connections = [] }: RoomNavigatorProps) {
-    const canvasRef = useRef<HTMLCanvasElement>(null)
-
-    useEffect(() => {
-        const canvas = canvasRef.current
-        if (!canvas) return
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-
-        // Calculate center for current room
-        const cx = currentRoom.x + currentRoom.w / 2
-        const cy = currentRoom.y + currentRoom.h / 2
-
-        // Calculate global navigation scale
-        const GRID_SIZE = 12
-        const w = canvas.width
-        const h = canvas.height
-
-        ctx.clearRect(0, 0, w, h)
-
-        ctx.save()
-        ctx.translate(w / 2, h / 2)
-        ctx.scale(GRID_SIZE, GRID_SIZE)
-        ctx.translate(-cx, -cy)
-
-        // Draw all rooms in the game world
-        mapData.rooms.forEach(r => {
-            // Zone colors could be matched here if we map them by zone_id, 
-            // but for simplicity we highlight the active room and deemphasize others
-            const isCurrent = r.id === currentRoom.id
-
-            ctx.fillStyle = isCurrent ? 'rgba(59, 130, 246, 0.4)' : 'rgba(255, 255, 255, 0.1)'
-            ctx.fillRect(r.x, r.y, r.w, r.h)
-
-            ctx.strokeStyle = isCurrent ? '#60a5fa' : '#555'
-            ctx.lineWidth = isCurrent ? 0.2 : 0.1
-            ctx.strokeRect(r.x, r.y, r.w, r.h)
-
-            // Draw grid interior lines for bigger rooms
-            if (r.w > 1 || r.h > 1) {
-                ctx.beginPath()
-                for (let ix = 1; ix < r.w; ix++) {
-                    ctx.moveTo(r.x + ix, r.y)
-                    ctx.lineTo(r.x + ix, r.y + r.h)
-                }
-                for (let iy = 1; iy < r.h; iy++) {
-                    ctx.moveTo(r.x, r.y + iy)
-                    ctx.lineTo(r.x + r.w, r.y + iy)
-                }
-                ctx.strokeStyle = isCurrent ? 'rgba(96, 165, 250, 0.3)' : 'rgba(255, 255, 255, 0.05)'
-                ctx.lineWidth = 0.05
-                ctx.stroke()
-            }
-        })
-
-        // Draw connections
-        connections.forEach(conn => {
-            const fromRoom = mapData.rooms.find(r => r.id === conn.fromId)
-            const toRoom = mapData.rooms.find(r => r.id === conn.toId)
-            if (!fromRoom || !toRoom) return
-
-            ctx.beginPath()
-            ctx.strokeStyle = GATE_COLORS[conn.condition] || '#888'
-            ctx.lineWidth = 0.2
-            if (conn.condition !== 'none') {
-                ctx.setLineDash([0.5, 0.3])
-            } else {
-                ctx.setLineDash([])
-            }
-
-            ctx.moveTo(fromRoom.x + fromRoom.w / 2, fromRoom.y + fromRoom.h / 2)
-            ctx.lineTo(toRoom.x + toRoom.w / 2, toRoom.y + toRoom.h / 2)
-            ctx.stroke()
-            ctx.setLineDash([])
-        })
-
-        ctx.restore()
-    }, [mapData, currentRoom, connections])
-
+export function RoomNavigator({ mapData, currentRoom, connections = [], onDoubleClickRoom }: RoomNavigatorProps) {
+    const [isLargeOpen, setIsLargeOpen] = useState(false)
+    const closeLarge = () => setIsLargeOpen(false)
     return (
         <div data-tutorial="roomeditor-navigator" className="animate-fade-in" style={{
             width: '100%',
@@ -104,16 +31,122 @@ export function RoomNavigator({ mapData, currentRoom, connections = [] }: RoomNa
                 fontWeight: 600,
                 color: 'var(--text-muted)',
                 background: 'rgba(255,255,255,0.02)',
-                borderBottom: '1px solid var(--border-light)'
+                borderBottom: '1px solid var(--border-light)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8
             }}>
-                방 내비게이션
+                <span>방 내비게이션</span>
+                <button
+                    onClick={() => setIsLargeOpen(true)}
+                    className="btn-base btn-secondary"
+                    style={{ padding: '4px 8px', fontSize: 10 }}
+                    title="큰 화면으로 보기"
+                >
+                    크게 보기
+                </button>
             </div>
-            <canvas
-                ref={canvasRef}
-                width={240}
-                height={175}
-                style={{ width: '100%', height: 'calc(100% - 25px)', display: 'block' }}
+            <div style={{ width: '100%', height: 'calc(100% - 25px)' }}>
+                <RoomNavigatorCanvas
+                    mapData={mapData}
+                    currentRoom={currentRoom}
+                    connections={connections}
+                    onDoubleClickRoom={onDoubleClickRoom}
+                />
+            </div>
+
+            <RoomNavigatorLargeModal
+                isOpen={isLargeOpen}
+                onClose={closeLarge}
+                mapData={mapData}
+                currentRoom={currentRoom}
+                connections={connections}
+                onDoubleClickRoom={onDoubleClickRoom}
             />
         </div>
+    )
+}
+
+function RoomNavigatorLargeModal(props: {
+    isOpen: boolean
+    onClose: () => void
+    mapData: MapData
+    currentRoom: Room
+    connections: Connection[]
+    onDoubleClickRoom?: (roomId: number) => void
+}) {
+    const { isOpen, onClose, mapData, currentRoom, connections, onDoubleClickRoom } = props
+
+    useEffect(() => {
+        if (!isOpen) return
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose()
+        }
+        window.addEventListener('keydown', onKeyDown)
+        return () => window.removeEventListener('keydown', onKeyDown)
+    }, [isOpen, onClose])
+
+    if (!isOpen) return null
+    if (typeof document === 'undefined') return null
+
+    return createPortal(
+        <div
+            className="animate-fade-in"
+            style={{
+                position: 'fixed',
+                top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: 'rgba(13, 13, 18, 0.8)',
+                backdropFilter: 'blur(4px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+                padding: 20,
+            }}
+            onClick={onClose}
+        >
+            <div
+                className="panel-base animate-slide-up"
+                style={{
+                    width: '80vw',
+                    height: '80vh',
+                    maxWidth: 1400,
+                    maxHeight: 900,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    boxShadow: 'var(--shadow-xl)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div style={{
+                    padding: '12px 14px',
+                    borderBottom: '1px solid var(--border-light)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-main)' }}>방 내비게이션(확대)</div>
+                    <button
+                        onClick={onClose}
+                        className="btn-base btn-secondary"
+                        style={{ padding: '6px 10px', fontSize: 12 }}
+                    >
+                        닫기
+                    </button>
+                </div>
+                <div style={{ flex: 1, minHeight: 0 }}>
+                    <RoomNavigatorCanvas
+                        mapData={mapData}
+                        currentRoom={currentRoom}
+                        connections={connections}
+                        onDoubleClickRoom={onDoubleClickRoom}
+                    />
+                </div>
+            </div>
+        </div>,
+        document.body
     )
 }

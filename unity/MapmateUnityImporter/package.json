@@ -1,6 +1,6 @@
 {
   "name": "com.mapmate.unityimporter",
-  "version": "0.2.1",
+  "version": "1.8.0",
   "displayName": "Mapmate Unity Importer",
   "description": "Mapmate의 mapmate.unity/v1 JSON을 Unity Tilemap으로 자동 생성하고, 기본 타일/프리팹/팔레트를 자동 생성해 바로 플레이 가능한 씬 구성을 돕는 Importer(에디터 툴)입니다.",
   "unity": "2021.3",

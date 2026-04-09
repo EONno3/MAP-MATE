@@ -4,6 +4,7 @@ import { Translations, getRoomTypeName } from '../i18n/translations'
 import { MousePointerClick, Link as LinkIcon, Box, Copy, ClipboardPaste, Trash2, Scissors, Image as ImageIcon, Lightbulb, MapPin } from 'lucide-react'
 import { RoomTypeSelect } from './RoomTypeSelect'
 import { getRoomTypeIconComponent } from '../lib/iconRenderer'
+import { WORLD_MAP_SIDEBAR_EMPTY_SELECTION_SHORTCUTS, WORLD_MAP_SIDEBAR_MULTISELECT_SHORTCUTS } from '../lib/shortcutCatalog'
 // 선택된 연결선 타입
 interface SelectedConnection {
   fromId: number
@@ -264,7 +265,7 @@ export function Sidebar({
                 {selectedRoomIds.length}개 방 선택됨
               </div>
               <div style={{ fontSize: 12, color: '#888' }}>
-                Ctrl+클릭으로 추가/제거
+                Ctrl/Cmd+클릭으로 추가/제거
               </div>
             </div>
           </div>
@@ -282,7 +283,7 @@ export function Sidebar({
             className="btn-base btn-primary"
             style={{ flex: 1, padding: '10px' }}
           >
-            <Copy size={16} /> 복사 (Ctrl+C)
+            <Copy size={16} /> 복사 (Ctrl/Cmd+C)
           </button>
           <button
             data-tutorial="sidebar-paste"
@@ -296,7 +297,7 @@ export function Sidebar({
               color: clipboard.length > 0 ? '#000' : undefined
             }}
           >
-            <ClipboardPaste size={16} /> 붙여넣기 (Ctrl+V)
+            <ClipboardPaste size={16} /> 붙여넣기 (Ctrl/Cmd+V)
           </button>
         </div>
 
@@ -405,11 +406,9 @@ export function Sidebar({
           color: '#666'
         }}>
           <div style={{ marginBottom: 4 }}>💡 단축키:</div>
-          <div>• Ctrl+A: 전체 선택</div>
-          <div>• Ctrl+C: 복사</div>
-          <div>• Ctrl+V: 붙여넣기</div>
-          <div>• Delete: 삭제</div>
-          <div>• Esc: 선택 해제</div>
+          {WORLD_MAP_SIDEBAR_MULTISELECT_SHORTCUTS.map((row) => (
+            <div key={`${row.combo}:${row.description}`}>• {row.combo}: {row.description}</div>
+          ))}
         </div>
       </div>
     )
@@ -444,11 +443,9 @@ export function Sidebar({
           <div style={{ marginBottom: 8, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Lightbulb size={14} /> 단축키:
           </div>
-          <div>• 1: 선택 도구</div>
-          <div>• 2: 방 그리기</div>
-          <div>• 3: 연결 도구</div>
-          <div>• Ctrl+클릭: 다중 선택</div>
-          <div>• Ctrl+Z/Y: 실행취소/다시실행</div>
+          {WORLD_MAP_SIDEBAR_EMPTY_SELECTION_SHORTCUTS.map((row) => (
+            <div key={row.text}>{row.text}</div>
+          ))}
         </div>
         <div style={{
           marginTop: 16,

@@ -1,5 +1,12 @@
 export type Language = 'ko' | 'en'
 
+import {
+  ROOM_EDITOR_OVERLAY_INSTRUCTIONS_EN,
+  ROOM_EDITOR_OVERLAY_INSTRUCTIONS_KO,
+  WORLD_MAP_OVERLAY_INSTRUCTIONS_EN,
+  WORLD_MAP_OVERLAY_INSTRUCTIONS_KO,
+} from '../lib/shortcutCatalog'
+
 export interface Translations {
   // App
   appName: string
@@ -102,6 +109,11 @@ export interface Translations {
   cancelSelection: string
   unsavedChanges: string
   unsavedChangesIndicator: string
+  unsavedChangesDialogTitle: string
+  unsavedChangesDialogDescription: string
+  unsavedChangesDialogStayEditing: string
+  unsavedChangesDialogLeaveWithoutSaving: string
+  unsavedChangesDialogSaveAndLeave: string
   confirmReset: string
   roomEditorInstructions: string
   objectDragHint: string
@@ -252,7 +264,7 @@ export const translations: Record<Language, Translations> = {
     zoom: '줌',
     dragging: '이동 중...',
     clickToConnect: '다른 방을 클릭하여 연결',
-    instructions: '스크롤: 줌 | Space+드래그: 이동 | 클릭: 방 메뉴 | 드래그: 방 이동 | Ctrl+클릭: 다중선택/연결 | 더블클릭: 상세맵 | Delete: 삭제',
+    instructions: WORLD_MAP_OVERLAY_INSTRUCTIONS_KO,
 
     // Tooltip
     room: '방',
@@ -281,8 +293,13 @@ export const translations: Record<Language, Translations> = {
     cancelSelection: '선택 해제',
     unsavedChanges: '저장하지 않은 변경사항이 있습니다. 나가시겠습니까?',
     unsavedChangesIndicator: '저장되지 않은 변경사항',
+    unsavedChangesDialogTitle: '저장하지 않은 변경사항이 있습니다.',
+    unsavedChangesDialogDescription: '저장하고 나가시겠습니까?',
+    unsavedChangesDialogStayEditing: '계속 편집',
+    unsavedChangesDialogLeaveWithoutSaving: '저장하지 않고 나가기',
+    unsavedChangesDialogSaveAndLeave: '저장 후 나가기',
     confirmReset: '모든 변경사항을 초기화하시겠습니까?',
-    roomEditorInstructions: '클릭/드래그: 그리기 | Space+드래그: 이동 | 단축키(B/G/E): 도구 변경 | 스크롤: 줌 | 오브젝트: 클릭 선택 후 드래그 | Delete: 삭제',
+    roomEditorInstructions: ROOM_EDITOR_OVERLAY_INSTRUCTIONS_KO,
     objectDragHint: '오브젝트를 선택 후 드래그하여 이동',
     toolType: '도구 종류',
     brushTool: '브러시',
@@ -430,7 +447,7 @@ export const translations: Record<Language, Translations> = {
     zoom: 'Zoom',
     dragging: 'Dragging...',
     clickToConnect: 'Click another room to connect',
-    instructions: 'Scroll: Zoom | Space+Drag: Pan | Click: Menu | Drag: Move | Ctrl+Click: Connect | Double-click: Detail | Delete: Remove',
+    instructions: WORLD_MAP_OVERLAY_INSTRUCTIONS_EN,
 
     // Tooltip
     room: 'Room',
@@ -459,8 +476,13 @@ export const translations: Record<Language, Translations> = {
     cancelSelection: 'Cancel Selection',
     unsavedChanges: 'You have unsaved changes. Are you sure you want to leave?',
     unsavedChangesIndicator: 'Unsaved changes',
+    unsavedChangesDialogTitle: 'You have unsaved changes.',
+    unsavedChangesDialogDescription: 'Do you want to save before leaving?',
+    unsavedChangesDialogStayEditing: 'Keep editing',
+    unsavedChangesDialogLeaveWithoutSaving: 'Leave without saving',
+    unsavedChangesDialogSaveAndLeave: 'Save and leave',
     confirmReset: 'Reset all changes?',
-    roomEditorInstructions: 'Click/Drag: Paint | Space+Drag: Pan | Keys(B/G/E): Tools | Scroll: Zoom | Delete: Remove',
+    roomEditorInstructions: ROOM_EDITOR_OVERLAY_INSTRUCTIONS_EN,
     objectDragHint: 'Select object then drag to move',
     toolType: 'Tool Type',
     brushTool: 'Brush',
