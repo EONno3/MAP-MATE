@@ -10,7 +10,9 @@ if /I "%~1"=="help" goto :help
 if /I "%~1"=="--help" goto :help
 if /I "%~1"=="/?" goto :help
 
-if "%~1"=="" goto :menu
+REM One-click default: start docker (recommended)
+if "%~1"=="" goto :start_docker
+if /I "%~1"=="menu" goto :menu
 
 if /I "%~1"=="start" (
   shift
@@ -33,7 +35,8 @@ echo   Mapmate Launcher
 echo ============================================================
 echo.
 echo Usage:
-echo   mapmate.bat                 ^(interactive menu^)
+echo   mapmate.bat                 ^(one-click: start docker^)
+echo   mapmate.bat menu            ^(interactive menu^)
 echo   mapmate.bat start ^<docker^|local^|ai^> [--dry-run] [--no-browser]
 echo   mapmate.bat stop  ^<docker^>          [--dry-run]
 echo.

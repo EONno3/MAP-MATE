@@ -4,12 +4,14 @@
 
 ## 가장 쉬운 실행
 
-- **방법 A (권장)**: `mapmate.bat` 더블클릭 → **메뉴**에서 선택
+- **방법 A (권장)**: `mapmate.bat` 더블클릭 → **Docker로 전체 실행 + 브라우저 자동 오픈**
 - **방법 B (명령으로 실행)**: 아래 커맨드 그대로 실행
 
 ## Docker로 실행 (권장)
 
 ```bat
+mapmate.bat
+REM 또는
 mapmate.bat start docker
 ```
 
