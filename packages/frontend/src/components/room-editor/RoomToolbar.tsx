@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Translations } from '../../i18n/translations'
 import { Room, Zone } from '../../types/map'
-import { ArrowLeft, RotateCcw, Save, AlertTriangle, Undo2, Redo2, RefreshCw, Sparkles } from 'lucide-react'
+import { ArrowLeft, RotateCcw, Save, AlertTriangle, Undo2, Redo2, RefreshCw, Sparkles, HelpCircle } from 'lucide-react'
 
 interface RoomToolbarProps {
   room: Room
@@ -120,6 +120,14 @@ export function RoomToolbar({
           style={{ color: 'var(--accent-yellow)', border: '1px solid rgba(250, 204, 21, 0.3)', backgroundColor: 'rgba(250, 204, 21, 0.05)' }}
         >
           <Sparkles size={18} />
+        </button>
+        <button
+          className="btn-base btn-icon"
+          title="단축키 및 도움말"
+          onClick={() => window.dispatchEvent(new Event('toggle-help-modal'))}
+          data-tutorial="toolbar-help"
+        >
+          <HelpCircle size={18} />
         </button>
         <button
           onClick={onUndo}
